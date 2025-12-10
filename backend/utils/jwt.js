@@ -11,7 +11,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 /**
  * Generar token JWT para un usuario
- * @param {number} userId - ID del usuario
+ * @param {string} userId - ID del usuario (UUID)
  * @param {string} username - Nombre de usuario
  * @returns {string} Token JWT
  */

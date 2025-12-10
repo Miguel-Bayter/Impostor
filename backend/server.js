@@ -2,6 +2,7 @@
  * Servidor principal del juego Impostor multijugador
  * Fase 1: Configuración inicial
  * Fase 2: Autenticación
+ * Fase 3: Sistema de Salas
  */
 
 const express = require('express');
@@ -13,7 +14,9 @@ require('dotenv').config();
 
 // Importar rutas y middleware
 const authRoutes = require('./routes/auth');
+const roomRoutes = require('./routes/rooms');
 const { authenticateSocket } = require('./middleware/auth');
+const { setupRoomHandlers } = require('./sockets/roomSocket');
 
 const app = express();
 const server = http.createServer(app);
@@ -173,9 +176,8 @@ authNamespace.on('connection', (socket) => {
 // Esto valida el token antes de permitir la conexión
 io.use(authenticateSocket);
 
-// Almacenamiento temporal de salas (en producción usar Redis/DB)
-// TODO: Migrar a base de datos en fases posteriores
-const rooms = new Map();
+// Configurar handlers de WebSocket para salas
+setupRoomHandlers(io);
 
 // WebSocket connection (solo se ejecuta si la autenticación es exitosa)
 io.on('connection', (socket) => {
@@ -198,6 +200,7 @@ io.on('connection', (socket) => {
 
 // Rutas API
 app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomRoutes);
 
 // Rutas API básicas
 app.get('/api/health', (req, res) => {

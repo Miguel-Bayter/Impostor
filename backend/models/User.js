@@ -7,6 +7,7 @@
  */
 
 const bcrypt = require('bcrypt');
+const { v4: uuidv4 } = require('uuid');
 
 class User {
   constructor() {
@@ -14,8 +15,6 @@ class User {
     this.usersById = new Map();
     // Índice por email para búsquedas rápidas: Map<email, userId>
     this.usersByEmail = new Map();
-    // Contador para IDs únicos
-    this.nextId = 1;
   }
 
   /**
@@ -84,8 +83,8 @@ class User {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Crear usuario
-    const userId = this.nextId++;
+    // Crear usuario con UUID
+    const userId = uuidv4();
     const user = {
       id: userId,
       username: normalizedUsername,
@@ -121,7 +120,7 @@ class User {
 
   /**
    * Buscar usuario por ID
-   * @param {number} userId - ID del usuario
+   * @param {string} userId - ID del usuario (UUID)
    * @returns {Object|null} Usuario encontrado (sin passwordHash)
    */
   findById(userId) {
@@ -163,7 +162,6 @@ class User {
   clear() {
     this.usersById.clear();
     this.usersByEmail.clear();
-    this.nextId = 1;
   }
 }
 

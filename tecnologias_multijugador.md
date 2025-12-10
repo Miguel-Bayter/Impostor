@@ -1067,7 +1067,7 @@ socket.on('submitClue', (data) => {
 - [x] Elegir stack tecnológico
 - [x] Configurar proyecto backend
 - [x] Configurar proyecto frontend
-- [ ] Configurar base de datos (local o cloud)
+- [x] Configurar base de datos (local o cloud) - Usando almacenamiento en memoria por ahora
 
 ### Fase 2: Autenticación
 - [x] Implementar registro/login
@@ -1075,9 +1075,9 @@ socket.on('submitClue', (data) => {
 - [x] Proteger rutas y WebSockets
 
 ### Fase 3: Sistema de Salas
-- [ ] Crear/Unirse a salas
-- [ ] Gestión de jugadores en salas
-- [ ] Persistencia de salas
+- [x] Crear/Unirse a salas
+- [x] Gestión de jugadores en salas
+- [x] Persistencia de salas (en memoria, migrar a DB en fases posteriores)
 
 ### Fase 4: Lógica del Juego
 - [ ] Migrar lógica de juego al servidor
