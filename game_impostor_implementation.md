@@ -55,6 +55,10 @@
 - [x] Mostrar orden de turnos de jugadores
 - [x] Implementar input para capturar pistas de cada jugador
 - [x] Validar que no se repitan pistas entre jugadores
+  - [x] Función dedicada `validateClueNotRepeated()` para validar pistas repetidas
+  - [x] Comparación insensible a mayúsculas/minúsculas y espacios
+  - [x] Si un jugador repite una pista de otro jugador, se muestra mensaje de error y se le pide ingresar otra palabra
+  - [x] El jugador permanece en el mismo turno hasta ingresar una pista única
 - [x] Mostrar pistas ya ingresadas (para referencia)
 - [x] Gestionar turnos secuenciales
 - [x] Implementar botón "Siguiente" para avanzar turno
@@ -115,7 +119,7 @@
 1. ✅ **Sistema completo de pantallas**: Todas las pantallas están implementadas y conectadas
 2. ✅ **Validación de reglas**: Se valida correctamente el número de jugadores e impostores
 3. ✅ **Asignación aleatoria**: Los roles se asignan aleatoriamente
-4. ✅ **Sistema de pistas**: Validación de pistas repetidas y turnos secuenciales
+4. ✅ **Sistema de pistas**: Validación robusta de pistas repetidas mediante función dedicada `validateClueNotRepeated()`, turnos secuenciales, y detección de adivinanza de palabra secreta
 5. ✅ **Sistema de votación**: Votación funcional por turnos con cálculo de resultados
 6. ✅ **Condiciones de victoria**: Detección automática de condiciones de victoria
 7. ✅ **Diseño responsivo**: Funciona en diferentes tamaños de pantalla
@@ -124,6 +128,25 @@
 10. ✅ **Código comentado**: Todo el código JavaScript está completamente documentado
 11. ✅ **Manejo de empates**: Sistema para manejar empates en votación
 12. ✅ **Base de datos extensa**: Más de 200 palabras en español organizadas por categorías
+13. ✅ **Validación de pistas repetidas**: Sistema dedicado que previene que los jugadores usen pistas ya ingresadas por otros, forzando a ingresar una palabra única
+14. ✅ **Detección de adivinanza**: Si un jugador o impostor adivina la palabra secreta exacta, la ronda finaliza y el juego se reinicia automáticamente
+
+### Validaciones de Pistas Implementadas
+
+1. **Validación de formato básico**:
+   - La pista no puede estar vacía
+   - Debe tener al menos 2 caracteres
+
+2. **Validación de pistas repetidas** (`validateClueNotRepeated()`):
+   - Compara la pista ingresada con todas las pistas ya dadas por otros jugadores
+   - Comparación insensible a mayúsculas/minúsculas y espacios al inicio/final
+   - Si se detecta repetición, muestra mensaje de error: "Esta pista ya fue usada por otro jugador. Por favor, ingresa otra palabra."
+   - El jugador permanece en el mismo turno hasta ingresar una pista única
+
+3. **Detección de adivinanza de palabra secreta** (`checkWordGuess()`):
+   - Compara la pista con la palabra secreta de la ronda
+   - Si coincide exactamente (ignorando mayúsculas/minúsculas y espacios), finaliza la ronda inmediatamente
+   - Muestra mensaje indicando qué jugador adivinó y reinicia el juego automáticamente
 
 ### Estado del Proyecto
 

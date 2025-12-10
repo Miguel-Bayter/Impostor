@@ -265,6 +265,49 @@ function displayCurrentTurn() {
 }
 
 /**
+ * Verifica si una pista coincide exactamente con la palabra secreta
+ * @param {string} clue - La pista ingresada por el jugador
+ * @param {string} secretWord - La palabra secreta de la ronda
+ * @returns {boolean} true si la pista coincide exactamente con la palabra secreta
+ */
+function checkWordGuess(clue, secretWord) {
+    // Normalizar ambas palabras: eliminar espacios y convertir a minúsculas
+    const normalizedClue = clue.trim().toLowerCase();
+    const normalizedSecretWord = secretWord.toLowerCase();
+    
+    // Comparar si son exactamente iguales
+    return normalizedClue === normalizedSecretWord;
+}
+
+/**
+ * Valida que una pista no haya sido usada previamente por otro jugador
+ * @param {string} clue - La pista a validar
+ * @param {Array} existingClues - Array de objetos con pistas ya ingresadas {playerId, playerName, clue}
+ * @returns {Object} Objeto con isValid (boolean) y errorMessage (string) si hay error
+ */
+function validateClueNotRepeated(clue, existingClues) {
+    // Normalizar la pista ingresada para comparación
+    const normalizedClue = clue.trim().toLowerCase();
+    
+    // Si no hay pistas existentes, la pista es válida
+    if (!existingClues || existingClues.length === 0) {
+        return { isValid: true, errorMessage: '' };
+    }
+    
+    // Normalizar todas las pistas existentes y comparar
+    const normalizedExistingClues = existingClues.map(c => c.clue.trim().toLowerCase());
+    
+    if (normalizedExistingClues.includes(normalizedClue)) {
+        return {
+            isValid: false,
+            errorMessage: 'Esta pista ya fue usada por otro jugador. Por favor, ingresa otra palabra.'
+        };
+    }
+    
+    return { isValid: true, errorMessage: '' };
+}
+
+/**
  * Procesa la pista del jugador actual
  */
 function submitClue() {
@@ -283,16 +326,29 @@ function submitClue() {
         return;
     }
     
-    // Validar que no se repita
-    const existingClues = gameState.clues.map(c => c.clue.toLowerCase());
-    if (existingClues.includes(clue)) {
-        errorElement.textContent = 'Esta pista ya fue usada. Intenta con otra.';
+    // Validar que la pista no se repita con las pistas de otros jugadores
+    const validationResult = validateClueNotRepeated(clueInput.value.trim(), gameState.clues);
+    if (!validationResult.isValid) {
+        errorElement.textContent = validationResult.errorMessage;
+        return;
+    }
+    
+    // Obtener jugador actual antes de verificar adivinanza
+    const activePlayers = gameState.players.filter(p => !p.isEliminated);
+    const currentPlayer = activePlayers[gameState.currentTurn];
+    
+    // Verificar si el jugador adivinó la palabra secreta exacta
+    if (checkWordGuess(clueInput.value.trim(), gameState.secretWord)) {
+        // Mostrar mensaje informativo
+        const playerRole = currentPlayer.isImpostor ? 'impostor' : 'jugador';
+        alert(`¡${currentPlayer.name} (${playerRole}) adivinó la palabra secreta "${gameState.secretWord}"!\n\nLa ronda finaliza y el juego se reinicia.`);
+        
+        // Reiniciar el juego automáticamente
+        resetGame();
         return;
     }
     
     // Agregar pista
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    const currentPlayer = activePlayers[gameState.currentTurn];
     
     gameState.clues.push({
         playerId: currentPlayer.id,
