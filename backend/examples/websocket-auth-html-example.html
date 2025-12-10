@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ejemplo Autenticación WebSocket</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            width: 200px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            color: green;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ejemplo de Autenticación por WebSocket</h1>
+
+    <!-- Sección de Registro -->
+    <div class="container">
+        <h2>Registro</h2>
+        <input type="text" id="reg-username" placeholder="Nombre de usuario">
+        <input type="email" id="reg-email" placeholder="Email">
+        <input type="password" id="reg-password" placeholder="Contraseña">
+        <button onclick="register()">Registrarse</button>
+        <div id="reg-result"></div>
+    </div>
+
+    <!-- Sección de Login -->
+    <div class="container">
+        <h2>Login</h2>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Contraseña">
+        <button onclick="login()">Iniciar Sesión</button>
+        <div id="login-result"></div>
+    </div>
+
+    <!-- Sección de Conexión al Juego -->
+    <div class="container">
+        <h2>Conexión al Juego</h2>
+        <button onclick="connectToGame()">Conectar al Juego</button>
+        <div id="game-status"></div>
+    </div>
+
+    <!-- Información del Usuario -->
+    <div class="container">
+        <h2>Información</h2>
+        <div id="user-info" class="info">No autenticado</div>
+        <button onclick="disconnect()">Desconectar</button>
+    </div>
+
+    <script>
+        let authSocket = null;
+        let gameSocket = null;
+        let currentToken = null;
+
+        // Función de registro
+        function register() {
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const resultDiv = document.getElementById('reg-result');
+
+            if (!username || !email || !password) {
+                resultDiv.innerHTML = '<div class="error">Por favor, completa todos los campos</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div>Registrando...</div>';
+
+            // Conectar al namespace de autenticación
+            authSocket = io('http://localhost:3000/auth');
+
+            authSocket.on('connect', () => {
+                console.log('Conectado al namespace de autenticación');
+                authSocket.emit('auth:register', { username, email, password });
+            });
+
+            authSocket.on('auth:register:success', (data) => {
+                resultDiv.innerHTML = `<div class="success">Registro exitoso! Usuario: ${data.user.username}</div>`;
+                currentToken = data.token;
+                localStorage.setItem('authToken', data.token);
+                updateUserInfo(data.user);
+                authSocket.disconnect();
+            });
+
+            authSocket.on('auth:error', (error) => {
+                resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                authSocket.disconnect();
+            });
+        }
+
+        // Función de login
+        function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const resultDiv = document.getElementById('login-result');
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<div class="error">Por favor, completa todos los campos</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div>Iniciando sesión...</div>';
+
+            // Conectar al namespace de autenticación
+            authSocket = io('http://localhost:3000/auth');
+
+            authSocket.on('connect', () => {
+                console.log('Conectado al namespace de autenticación');
+                authSocket.emit('auth:login', { email, password });
+            });
+
+            authSocket.on('auth:login:success', (data) => {
+                resultDiv.innerHTML = `<div class="success">Login exitoso! Bienvenido ${data.user.username}</div>`;
+                currentToken = data.token;
+                localStorage.setItem('authToken', data.token);
+                updateUserInfo(data.user);
+                authSocket.disconnect();
+            });
+
+            authSocket.on('auth:error', (error) => {
+                resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+                authSocket.disconnect();
+            });
+        }
+
+        // Función para conectar al juego
+        function connectToGame() {
+            const statusDiv = document.getElementById('game-status');
+
+            // Obtener token del localStorage si no está en memoria
+            if (!currentToken) {
+                currentToken = localStorage.getItem('authToken');
+            }
+
+            if (!currentToken) {
+                statusDiv.innerHTML = '<div class="error">No hay token. Por favor, inicia sesión primero.</div>';
+                return;
+            }
+
+            statusDiv.innerHTML = '<div>Conectando al juego...</div>';
+
+            // Conectar al namespace principal con el token
+            gameSocket = io('http://localhost:3000', {
+                auth: {
+                    token: currentToken
+                }
+            });
+
+            gameSocket.on('connect', () => {
+                statusDiv.innerHTML = '<div class="success">Conectado al juego exitosamente!</div>';
+                console.log('Conectado al namespace principal');
+
+                // Probar conexión
+                gameSocket.emit('ping');
+            });
+
+            gameSocket.on('pong', (data) => {
+                console.log('Pong recibido:', data);
+                statusDiv.innerHTML += `<div class="success">Servidor respondió: ${data.message}</div>`;
+            });
+
+            gameSocket.on('connect_error', (error) => {
+                statusDiv.innerHTML = `<div class="error">Error de conexión: ${error.message}</div>`;
+                if (error.message.includes('Token')) {
+                    localStorage.removeItem('authToken');
+                    currentToken = null;
+                }
+            });
+
+            gameSocket.on('disconnect', () => {
+                statusDiv.innerHTML = '<div>Desconectado del juego</div>';
+            });
+        }
+
+        // Actualizar información del usuario
+        function updateUserInfo(user) {
+            const userInfoDiv = document.getElementById('user-info');
+            userInfoDiv.innerHTML = `
+                <strong>Usuario autenticado:</strong><br>
+                ID: ${user.id}<br>
+                Username: ${user.username}<br>
+                Email: ${user.email}
+            `;
+        }
+
+        // Desconectar
+        function disconnect() {
+            if (authSocket) {
+                authSocket.disconnect();
+            }
+            if (gameSocket) {
+                gameSocket.disconnect();
+            }
+            localStorage.removeItem('authToken');
+            currentToken = null;
+            document.getElementById('user-info').innerHTML = 'No autenticado';
+            document.getElementById('game-status').innerHTML = '';
+        }
+
+        // Cargar token al iniciar si existe
+        window.onload = () => {
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+                currentToken = savedToken;
+                // Opcional: verificar token con el servidor
+            }
+        };
+    </script>
+</body>
+</html>
+

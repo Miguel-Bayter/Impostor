@@ -1,6 +1,7 @@
 /**
  * Servidor principal del juego Impostor multijugador
  * Fase 1: Configuración inicial
+ * Fase 2: Autenticación
  */
 
 const express = require('express');
@@ -9,6 +10,10 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
+
+// Importar rutas y middleware
+const authRoutes = require('./routes/auth');
+const { authenticateSocket } = require('./middleware/auth');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,25 +39,167 @@ app.use(express.urlencoded({ extended: true }));
 //   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 // });
 
+// Namespace de autenticación (sin middleware, permite registro/login)
+const authNamespace = io.of('/auth');
+const User = require('./models/User');
+const { generateToken } = require('./utils/jwt');
+
+// Handlers de autenticación por WebSocket
+authNamespace.on('connection', (socket) => {
+  console.log(`Conexión de autenticación: ${socket.id}`);
+
+  /**
+   * Evento: auth:register
+   * Registro de nuevo usuario por WebSocket
+   * 
+   * Data esperada:
+   * {
+   *   username: "nombre_usuario",
+   *   email: "usuario@ejemplo.com",
+   *   password: "contraseña123"
+   * }
+   */
+  socket.on('auth:register', async (data) => {
+    try {
+      const { username, email, password } = data;
+
+      // Validar campos requeridos
+      if (!username || !email || !password) {
+        return socket.emit('auth:error', {
+          error: 'Campos requeridos faltantes',
+          message: 'Se requieren: username, email, password'
+        });
+      }
+
+      // Crear usuario
+      const user = await User.create(username, email, password);
+
+      // Generar token JWT
+      const token = generateToken(user.id, user.username);
+
+      // Respuesta exitosa
+      socket.emit('auth:register:success', {
+        message: 'Usuario registrado exitosamente',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.createdAt
+        },
+        token: token
+      });
+    } catch (error) {
+      // Error de validación o usuario duplicado
+      socket.emit('auth:error', {
+        error: error.message.includes('ya está') || error.message.includes('debe tener') 
+          ? 'Error de validación' 
+          : 'Error interno',
+        message: error.message
+      });
+    }
+  });
+
+  /**
+   * Evento: auth:login
+   * Inicio de sesión por WebSocket
+   * 
+   * Data esperada:
+   * {
+   *   email: "usuario@ejemplo.com",
+   *   password: "contraseña123"
+   * }
+   */
+  socket.on('auth:login', async (data) => {
+    try {
+      const { email, password } = data;
+
+      // Validar campos requeridos
+      if (!email || !password) {
+        return socket.emit('auth:error', {
+          error: 'Campos requeridos faltantes',
+          message: 'Se requieren: email, password'
+        });
+      }
+
+      // Buscar usuario por email
+      const user = User.findByEmail(email);
+
+      if (!user) {
+        return socket.emit('auth:error', {
+          error: 'Credenciales inválidas',
+          message: 'Email o contraseña incorrectos'
+        });
+      }
+
+      // Verificar contraseña
+      const isPasswordValid = await User.verifyPassword(password, user.passwordHash);
+
+      if (!isPasswordValid) {
+        return socket.emit('auth:error', {
+          error: 'Credenciales inválidas',
+          message: 'Email o contraseña incorrectos'
+        });
+      }
+
+      // Generar token JWT
+      const token = generateToken(user.id, user.username);
+
+      // Respuesta exitosa
+      socket.emit('auth:login:success', {
+        message: 'Inicio de sesión exitoso',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          createdAt: user.createdAt
+        },
+        token: token
+      });
+    } catch (error) {
+      socket.emit('auth:error', {
+        error: 'Error interno',
+        message: 'No se pudo iniciar sesión'
+      });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Conexión de autenticación desconectada: ${socket.id}`);
+  });
+});
+
+// Namespace principal (requiere autenticación)
+// Aplicar middleware de autenticación a WebSockets
+// Esto valida el token antes de permitir la conexión
+io.use(authenticateSocket);
+
 // Almacenamiento temporal de salas (en producción usar Redis/DB)
 // TODO: Migrar a base de datos en fases posteriores
 const rooms = new Map();
 
-// WebSocket connection
+// WebSocket connection (solo se ejecuta si la autenticación es exitosa)
 io.on('connection', (socket) => {
-  console.log('Usuario conectado:', socket.id);
+  console.log(`Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`);
 
   // Evento de prueba de conexión
   socket.on('ping', () => {
-    socket.emit('pong', { message: 'Servidor activo', timestamp: Date.now() });
+    socket.emit('pong', { 
+      message: 'Servidor activo', 
+      timestamp: Date.now(),
+      userId: socket.userId,
+      username: socket.username
+    });
   });
 
   socket.on('disconnect', () => {
-    console.log('Usuario desconectado:', socket.id);
+    console.log(`Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
   });
 });
 
-// Rutas API básicas (para futuras fases)
+// Rutas API
+app.use('/api/auth', authRoutes);
+
+// Rutas API básicas
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 

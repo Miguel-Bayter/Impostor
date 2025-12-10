@@ -1064,15 +1064,15 @@ socket.on('submitClue', (data) => {
 ## ✅ Checklist de Implementación
 
 ### Fase 1: Configuración Inicial
-- [ ] Elegir stack tecnológico
-- [ ] Configurar proyecto backend
-- [ ] Configurar proyecto frontend
+- [x] Elegir stack tecnológico
+- [x] Configurar proyecto backend
+- [x] Configurar proyecto frontend
 - [ ] Configurar base de datos (local o cloud)
 
 ### Fase 2: Autenticación
-- [ ] Implementar registro/login
-- [ ] Implementar JWT
-- [ ] Proteger rutas y WebSockets
+- [x] Implementar registro/login
+- [x] Implementar JWT
+- [x] Proteger rutas y WebSockets
 
 ### Fase 3: Sistema de Salas
 - [ ] Crear/Unirse a salas
