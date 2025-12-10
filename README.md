@@ -1,92 +1,114 @@
-# 🎮 Juego Impostor
+# 🎮 Juego Impostor - Proyecto Multijugador
 
-Una aplicación web del juego social "Impostor" desarrollada con HTML, CSS y JavaScript puro (sin frameworks ni librerías externas).
+Juego social multijugador online donde debes descubrir quién es el impostor antes de que sea demasiado tarde.
 
-## 📋 Descripción
+## 📁 Estructura del Proyecto
 
-El juego consiste en un grupo de jugadores donde uno o más serán impostores que deben adivinar una palabra oculta basada en las pistas que dan los demás jugadores.
-
-## 🎯 Reglas del Juego
-
-### Configuración
-- **Mínimo de jugadores:** 4
-- **Máximo de impostores:** 3
-- **Impostores mínimos:** 1
-
-### Mecánica
-1. **Asignación de roles:** Los jugadores se dividen en impostores y ciudadanos
-2. **Palabra secreta:** Los ciudadanos conocen una palabra secreta, los impostores no
-3. **Ronda de pistas:** Cada jugador da una pista relacionada (sin repetir pistas)
-4. **Votación:** Todos los jugadores votan quién creen que es el impostor
-5. **Eliminación:** El jugador más votado es eliminado
-6. **Victoria:**
-   - Los ciudadanos ganan si todos los impostores son eliminados
-   - Los impostores ganan si quedan igual o más impostores que ciudadanos
-
-## 🚀 Cómo Jugar
-
-1. Abre `index.html` en tu navegador
-2. Ingresa el número de jugadores (mínimo 4)
-3. Selecciona el número de impostores (1-3)
-4. Haz clic en "Comenzar Juego"
-5. Revisa los roles asignados
-6. Sigue las instrucciones en pantalla para dar pistas y votar
-
-## 📁 Estructura de Archivos
+Este repositorio contiene **dos proyectos completamente separados**:
 
 ```
-.
-├── index.html                          # Estructura HTML principal
-├── styles.css                          # Estilos CSS organizados
-├── game.js                             # Lógica principal del juego
-├── words.js                            # Base de datos de palabras secretas
-├── game_impostor_implementation.md     # Plan de implementación y checklist
-└── README.md                           # Este archivo
+Impostor/
+├── backend/          # Proyecto Backend (Node.js + Express + Socket.io)
+│   ├── package.json
+│   ├── server.js
+│   └── ...
+│
+├── frontend/        # Proyecto Frontend (HTML/CSS/JavaScript)
+│   ├── package.json
+│   ├── index.html
+│   └── ...
+│
+└── README.md        # Este archivo
 ```
 
-## 🛠️ Tecnologías Utilizadas
+## 🚀 Inicio Rápido
 
-- **HTML5** - Estructura semántica
-- **CSS3** - Estilos responsivos con variables CSS
-- **JavaScript (ES6+)** - Lógica del juego sin frameworks
+### Backend
 
-## ✨ Características
+```bash
+cd backend
+npm install
+npm run dev
+```
 
-- ✅ Diseño responsivo para móviles y escritorio
-- ✅ Tema oscuro estilo "Among Us"
-- ✅ Animaciones suaves entre pantallas
-- ✅ Validación completa de reglas del juego
-- ✅ Sistema de turnos para pistas y votación
-- ✅ Detección automática de condiciones de victoria
-- ✅ Código completamente comentado
-- ✅ Más de 200 palabras en la base de datos
+El backend estará disponible en `http://localhost:3000`
 
-## 🎨 Personalización
+### Frontend
 
-### Agregar más palabras
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-Edita el archivo `words.js` y agrega palabras al array `WORDS_DATABASE`.
+El frontend estará disponible en `http://localhost:5500`
 
-### Modificar estilos
+## 📋 Estado del Proyecto
 
-Edita `styles.css` y modifica las variables CSS en `:root` para cambiar colores, espaciado, etc.
+### ✅ Fase 1: Configuración Inicial (COMPLETADA)
+- [x] Stack tecnológico elegido (Node.js + Express + Socket.io)
+- [x] Proyecto backend configurado
+- [x] Proyecto frontend configurado
+- [x] Estructura de carpetas creada
+- [x] Servidor básico funcionando
 
-## 📝 Notas
+### 🔄 Próximas Fases
+- [ ] Fase 2: Autenticación
+- [ ] Fase 3: Sistema de Salas
+- [ ] Fase 4: Lógica del Juego
+- [ ] Fase 5: WebSockets
+- [ ] Fase 6: Frontend
+- [ ] Fase 7: Seguridad
+- [ ] Fase 8: Deploy
 
-- El juego está diseñado para ser jugado localmente (todos los jugadores ven la misma pantalla)
-- Para una experiencia multijugador en línea, se requeriría un backend y sistema de autenticación
-- Las palabras están en español
+## 🛠️ Stack Tecnológico
 
-## 🔧 Requisitos
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **WebSockets**: Socket.io
+- **Base de Datos**: (Por implementar - MongoDB/PostgreSQL)
 
-- Navegador web moderno (Chrome, Firefox, Safari, Edge)
-- No se requieren dependencias externas
+### Frontend
+- **HTML5** - Estructura
+- **CSS3** - Estilos
+- **JavaScript (Vanilla)** - Lógica del juego
+- **Socket.io Client** - Comunicación en tiempo real
+
+## 📚 Documentación
+
+- `backend/README.md` - Documentación del backend
+- `frontend/README.md` - Documentación del frontend
+- `tecnologias_multijugador.md` - Guía completa de tecnologías y arquitectura
+
+## 🔧 Configuración
+
+### Backend
+
+Copia `env.example.txt` a `backend/.env` y configura las variables de entorno:
+
+```env
+PORT=3000
+FRONTEND_URL=http://localhost:5500
+JWT_SECRET=tu_secreto_super_seguro_aqui
+```
+
+### Frontend
+
+El frontend no requiere configuración adicional. Asegúrate de que el backend esté corriendo para la funcionalidad multijugador.
+
+## 🎯 Funcionalidades Actuales
+
+- ✅ Interfaz de usuario completa
+- ✅ Lógica del juego local
+- ✅ Servidor backend básico con Express
+- ✅ Configuración de Socket.io
+- ✅ Estructura preparada para multijugador
+
+## 🤝 Contribuir
+
+Este proyecto está en desarrollo activo. Las contribuciones son bienvenidas.
 
 ## 📄 Licencia
 
-Este proyecto es de código abierto y está disponible para uso educativo y personal.
-
----
-
-¡Disfruta del juego! 🎉
-
+MIT

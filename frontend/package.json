@@ -1,0 +1,24 @@
+{
+  "name": "impostor-frontend",
+  "version": "1.0.0",
+  "description": "Frontend del juego Impostor multijugador - Aplicación web HTML/CSS/JavaScript",
+  "type": "module",
+  "scripts": {
+    "serve": "npx http-server . -p 5500 -o",
+    "dev": "npx http-server . -p 5500 -o"
+  },
+  "keywords": [
+    "game",
+    "multiplayer",
+    "impostor",
+    "frontend",
+    "html",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
+
