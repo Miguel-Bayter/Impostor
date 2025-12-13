@@ -21,6 +21,10 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:;"
         }
       ]
     }
