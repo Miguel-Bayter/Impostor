@@ -1,146 +1,218 @@
 /**
- * Juego Impostor - Lógica principal del juego
- * Maneja el estado del juego, flujo de pantallas y todas las mecánicas
+ * Juego Impostor - Lógica principal del juego (Multijugador)
+ * Fase 5: Integración WebSockets
+ * 
+ * Maneja la UI y renderizado, mientras el servidor maneja la lógica del juego
  */
 
 // ============================================
-// ESTADO DEL JUEGO
+// ESTADO LOCAL (solo UI)
 // ============================================
 
-/**
- * Objeto que contiene todo el estado del juego
- */
-let gameState = {
-    // Configuración inicial
-    totalPlayers: 0,
-    totalImpostors: 0,
-    
-    // Jugadores
-    players: [], // Array de objetos {id, name, isImpostor, isEliminated, clue, vote}
-    
-    // Palabra secreta
-    secretWord: '',
-    
-    // Ronda actual
-    currentRound: 1,
-    currentTurn: 0, // Índice del jugador actual
-    clues: [], // Array de objetos {playerId, playerName, clue}
-    
-    // Votación
-    votes: {}, // Objeto {voterId: votedPlayerId}
-    currentVotingTurn: 0, // Índice del jugador que está votando
-    
-    // Pantalla actual
-    currentScreen: 'start'
-};
+let socketClient = null;
+let currentGameState = null;
+let currentRoom = null;
+let currentPhase = null;
+let currentUser = null;
 
 // ============================================
 // INICIALIZACIÓN
 // ============================================
 
 /**
- * Inicializa el juego con la configuración del usuario
+ * Inicializa la aplicación cuando el DOM está listo
  */
-function initGame() {
-    const numPlayers = parseInt(document.getElementById('num-players').value);
-    const numImpostors = parseInt(document.getElementById('num-impostors').value);
+document.addEventListener('DOMContentLoaded', function() {
+    // Obtener URL del servidor (puede venir de variable de entorno o usar default)
+    const serverUrl = window.SERVER_URL || 'http://localhost:3000';
     
-    // Validar reglas del juego
-    if (!validateGameRules(numPlayers, numImpostors)) {
-        return false;
-    }
+    // Crear instancia del cliente WebSocket
+    socketClient = new SocketClient(serverUrl);
     
-    // Configurar estado inicial
-    gameState.totalPlayers = numPlayers;
-    gameState.totalImpostors = numImpostors;
-    gameState.players = [];
-    gameState.secretWord = getRandomWord();
-    gameState.currentRound = 1;
-    gameState.currentTurn = 0;
-    gameState.clues = [];
-    gameState.votes = {};
+    // Configurar callbacks de eventos
+    setupSocketCallbacks();
     
-    // Crear jugadores
-    createPlayers(numPlayers, numImpostors);
+    // Intentar reconectar con token guardado
+    socketClient.reconnectWithStoredToken().then(connected => {
+        if (connected) {
+            currentUser = socketClient.getCurrentUser();
+            showScreen('rooms');
+            loadRooms();
+        } else {
+            showScreen('auth');
+        }
+    }).catch(() => {
+        showScreen('auth');
+    });
     
-    // Asignar palabra secreta a jugadores no impostores
-    assignSecretWord();
+    // Configurar event listeners de UI
+    setupUIEventListeners();
+});
+
+/**
+ * Configurar callbacks para eventos del WebSocket
+ */
+function setupSocketCallbacks() {
+    // Conexión/Desconexión
+    socketClient.on('connect', () => {
+        console.log('[Game] Conectado al servidor');
+        hideError();
+    });
     
-    // Mostrar pantalla de roles
-    showScreen('roles');
-    displayRoles();
+    socketClient.on('disconnect', (reason) => {
+        console.log('[Game] Desconectado:', reason);
+        showError('Desconectado del servidor. Intentando reconectar...');
+    });
     
-    return true;
+    socketClient.on('error', (error) => {
+        console.error('[Game] Error:', error);
+        showError(error.message || error.error || 'Error desconocido');
+    });
+    
+    // Eventos de salas
+    socketClient.on('roomState', (room) => {
+        currentRoom = room;
+        updateRoomUI(room);
+    });
+    
+    socketClient.on('playerJoined', (data) => {
+        console.log('[Game] Jugador unido:', data);
+        if (currentRoom) {
+            updateRoomUI(currentRoom);
+        }
+    });
+    
+    socketClient.on('playerLeft', (data) => {
+        console.log('[Game] Jugador salió:', data);
+        if (currentRoom) {
+            updateRoomUI(currentRoom);
+        }
+    });
+    
+    // Eventos de juego
+    socketClient.on('gameState', (gameState, phase) => {
+        currentGameState = gameState;
+        currentPhase = phase || gameState?.phase;
+        
+        if (gameState) {
+            updateGameUI(gameState, phase);
+        }
+    });
+    
+    socketClient.on('clueSubmitted', (data) => {
+        console.log('[Game] Nueva pista:', data);
+        if (currentGameState) {
+            updateCluesDisplay(currentGameState);
+        }
+    });
+    
+    socketClient.on('voteSubmitted', (data) => {
+        console.log('[Game] Voto recibido:', data);
+        if (currentGameState) {
+            updateVotingUI(currentGameState);
+        }
+    });
+    
+    socketClient.on('votingResults', (data) => {
+        console.log('[Game] Resultados de votación:', data);
+        showVotingResults(data);
+    });
+    
+    socketClient.on('phaseChanged', (data) => {
+        console.log('[Game] Fase cambiada:', data);
+        currentPhase = data.phase;
+        handlePhaseChange(data.phase, data.message);
+    });
+    
+    socketClient.on('wordGuessed', (data) => {
+        console.log('[Game] Palabra adivinada:', data);
+        alert(`${data.message}\n\nLa ronda termina.`);
+        // El servidor enviará el nuevo estado
+    });
 }
 
 /**
- * Valida las reglas del juego
- * @param {number} numPlayers - Número total de jugadores
- * @param {number} numImpostors - Número de impostores
- * @returns {boolean} true si las reglas son válidas
+ * Configurar event listeners de la UI
  */
-function validateGameRules(numPlayers, numImpostors) {
-    const errorElement = document.getElementById('start-error');
-    errorElement.textContent = '';
-    
-    if (numPlayers < 4) {
-        errorElement.textContent = 'Se requieren al menos 4 jugadores';
-        return false;
+function setupUIEventListeners() {
+    // Autenticación
+    const authForm = document.getElementById('auth-form');
+    if (authForm) {
+        authForm.addEventListener('submit', handleAuthSubmit);
     }
     
-    if (numImpostors < 1) {
-        errorElement.textContent = 'Debe haber al menos 1 impostor';
-        return false;
+    const authToggle = document.getElementById('auth-toggle');
+    if (authToggle) {
+        authToggle.addEventListener('click', toggleAuthMode);
     }
     
-    if (numImpostors > 3) {
-        errorElement.textContent = 'Máximo 3 impostores permitidos';
-        return false;
+    // Salas
+    const createRoomForm = document.getElementById('create-room-form');
+    if (createRoomForm) {
+        createRoomForm.addEventListener('submit', handleCreateRoom);
     }
     
-    if (numImpostors >= numPlayers) {
-        errorElement.textContent = 'No puede haber más impostores que jugadores';
-        return false;
+    const joinRoomForm = document.getElementById('join-room-form');
+    if (joinRoomForm) {
+        joinRoomForm.addEventListener('submit', handleJoinRoom);
     }
     
-    return true;
-}
-
-/**
- * Crea los jugadores y asigna roles aleatoriamente
- * @param {number} totalPlayers - Número total de jugadores
- * @param {number} numImpostors - Número de impostores
- */
-function createPlayers(totalPlayers, numImpostors) {
-    // Crear array de índices para seleccionar impostores
-    const indices = Array.from({ length: totalPlayers }, (_, i) => i);
-    
-    // Seleccionar índices aleatorios para impostores
-    const impostorIndices = [];
-    for (let i = 0; i < numImpostors; i++) {
-        const randomIndex = Math.floor(Math.random() * indices.length);
-        impostorIndices.push(indices.splice(randomIndex, 1)[0]);
+    const refreshRoomsBtn = document.getElementById('btn-refresh-rooms');
+    if (refreshRoomsBtn) {
+        refreshRoomsBtn.addEventListener('click', loadRooms);
     }
     
-    // Crear jugadores
-    for (let i = 0; i < totalPlayers; i++) {
-        gameState.players.push({
-            id: i,
-            name: `Jugador ${i + 1}`,
-            isImpostor: impostorIndices.includes(i),
-            isEliminated: false,
-            clue: '',
-            vote: null
+    const leaveRoomBtn = document.getElementById('btn-leave-room');
+    if (leaveRoomBtn) {
+        leaveRoomBtn.addEventListener('click', handleLeaveRoom);
+    }
+    
+    const startGameBtn = document.getElementById('btn-start-game');
+    if (startGameBtn) {
+        startGameBtn.addEventListener('click', handleStartGame);
+    }
+    
+    // Juego
+    const submitClueBtn = document.getElementById('btn-submit-clue');
+    if (submitClueBtn) {
+        submitClueBtn.addEventListener('click', handleSubmitClue);
+    }
+    
+    const clueInput = document.getElementById('clue-input');
+    if (clueInput) {
+        clueInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSubmitClue();
+            }
         });
     }
-}
-
-/**
- * Asigna la palabra secreta a los jugadores que no son impostores
- */
-function assignSecretWord() {
-    // La palabra secreta ya está asignada en gameState.secretWord
-    // Los impostores no la conocen (se maneja en la UI)
+    
+    const finishCluesBtn = document.getElementById('btn-finish-clues');
+    if (finishCluesBtn) {
+        finishCluesBtn.addEventListener('click', () => {
+            // En multijugador, esto se maneja automáticamente cuando todos dan pista
+        });
+    }
+    
+    const submitVoteBtn = document.getElementById('btn-submit-vote');
+    if (submitVoteBtn) {
+        submitVoteBtn.addEventListener('click', handleSubmitVote);
+    }
+    
+    const continueGameBtn = document.getElementById('btn-continue-game');
+    if (continueGameBtn) {
+        continueGameBtn.addEventListener('click', handleContinueGame);
+    }
+    
+    const newGameBtn = document.getElementById('btn-new-game');
+    if (newGameBtn) {
+        newGameBtn.addEventListener('click', handleNewGame);
+    }
+    
+    const playAgainBtn = document.getElementById('btn-play-again');
+    if (playAgainBtn) {
+        playAgainBtn.addEventListener('click', handleNewGame);
+    }
 }
 
 // ============================================
@@ -149,43 +221,403 @@ function assignSecretWord() {
 
 /**
  * Muestra una pantalla específica y oculta las demás
- * @param {string} screenId - ID de la pantalla a mostrar
  */
 function showScreen(screenId) {
-    // Ocultar todas las pantallas
     const screens = document.querySelectorAll('.screen');
     screens.forEach(screen => {
         screen.classList.remove('active');
     });
     
-    // Mostrar la pantalla solicitada
     const targetScreen = document.getElementById(`screen-${screenId}`);
     if (targetScreen) {
         targetScreen.classList.add('active');
-        gameState.currentScreen = screenId;
+    }
+}
+
+/**
+ * Muestra un mensaje de error
+ */
+function showError(message) {
+    const errorElement = document.getElementById('global-error');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+}
+
+/**
+ * Oculta el mensaje de error
+ */
+function hideError() {
+    const errorElement = document.getElementById('global-error');
+    if (errorElement) {
+        errorElement.style.display = 'none';
     }
 }
 
 // ============================================
-// PANTALLA DE ROLES
+// AUTENTICACIÓN
 // ============================================
 
 /**
- * Muestra la pantalla de asignación de roles
+ * Maneja el envío del formulario de autenticación
  */
-function displayRoles() {
+async function handleAuthSubmit(e) {
+    e.preventDefault();
+    hideError();
+    
+    const authMode = document.getElementById('auth-mode').dataset.mode;
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    
+    if (authMode === 'register') {
+        // Registro
+        const username = document.getElementById('auth-username').value;
+        if (!username) {
+            showError('El nombre de usuario es requerido');
+            return;
+        }
+        
+        try {
+            const result = await socketClient.register(username, email, password);
+            currentUser = result.user;
+            showScreen('rooms');
+            loadRooms();
+        } catch (error) {
+            showError(error.message || 'Error al registrar usuario');
+        }
+    } else {
+        // Login
+        try {
+            const result = await socketClient.login(email, password);
+            currentUser = result.user;
+            showScreen('rooms');
+            loadRooms();
+        } catch (error) {
+            showError(error.message || 'Error al iniciar sesión');
+        }
+    }
+}
+
+/**
+ * Alterna entre modo login y registro
+ */
+function toggleAuthMode() {
+    const authMode = document.getElementById('auth-mode');
+    const usernameField = document.getElementById('auth-username-field');
+    const toggleBtn = document.getElementById('auth-toggle');
+    const submitBtn = document.getElementById('auth-submit');
+    
+    if (authMode.dataset.mode === 'login') {
+        // Cambiar a registro
+        authMode.dataset.mode = 'register';
+        if (usernameField) usernameField.style.display = 'block';
+        if (toggleBtn) toggleBtn.textContent = '¿Ya tienes cuenta? Inicia sesión';
+        if (submitBtn) submitBtn.textContent = 'Registrarse';
+    } else {
+        // Cambiar a login
+        authMode.dataset.mode = 'login';
+        if (usernameField) usernameField.style.display = 'none';
+        if (toggleBtn) toggleBtn.textContent = '¿No tienes cuenta? Regístrate';
+        if (submitBtn) submitBtn.textContent = 'Iniciar Sesión';
+    }
+}
+
+// ============================================
+// SALAS
+// ============================================
+
+/**
+ * Carga la lista de salas disponibles
+ */
+async function loadRooms() {
+    try {
+        const serverUrl = window.SERVER_URL || 'http://localhost:3000';
+        const response = await fetch(`${serverUrl}/api/rooms`);
+        const data = await response.json();
+        
+        displayRoomsList(data.rooms || []);
+    } catch (error) {
+        console.error('Error al cargar salas:', error);
+    }
+}
+
+/**
+ * Muestra la lista de salas disponibles
+ */
+function displayRoomsList(rooms) {
+    const roomsList = document.getElementById('rooms-list');
+    if (!roomsList) return;
+    
+    roomsList.innerHTML = '';
+    
+    if (rooms.length === 0) {
+        roomsList.innerHTML = '<p class="empty-state">No hay salas disponibles. Crea una nueva sala.</p>';
+        return;
+    }
+    
+    rooms.forEach(room => {
+        const roomCard = document.createElement('div');
+        roomCard.className = 'room-card';
+        roomCard.innerHTML = `
+            <div class="room-info">
+                <h3>${room.name || `Sala ${room.id}`}</h3>
+                <p>ID: <strong>${room.id}</strong></p>
+                <p>Jugadores: ${room.players.length}/${room.maxPlayers}</p>
+                <p>Estado: ${room.status === 'waiting' ? 'Esperando' : 'En juego'}</p>
+            </div>
+            <button class="btn btn-primary" onclick="joinRoomById('${room.id}')">Unirse</button>
+        `;
+        roomsList.appendChild(roomCard);
+    });
+}
+
+/**
+ * Unirse a una sala por ID (llamado desde botón)
+ */
+window.joinRoomById = function(roomId) {
+    handleJoinRoomById(roomId);
+};
+
+/**
+ * Maneja unirse a una sala por ID
+ */
+async function handleJoinRoomById(roomId) {
+    hideError();
+    
+    try {
+        const serverUrl = window.SERVER_URL || 'http://localhost:3000';
+        const token = localStorage.getItem('impostor_token');
+        
+        const response = await fetch(`${serverUrl}/api/rooms/join`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ roomId })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Error al unirse a la sala');
+        }
+        
+        // Unirse por WebSocket
+        socketClient.joinRoom(roomId);
+        showScreen('room-waiting');
+    } catch (error) {
+        showError(error.message || 'Error al unirse a la sala');
+    }
+}
+
+/**
+ * Maneja crear una nueva sala
+ */
+async function handleCreateRoom(e) {
+    e.preventDefault();
+    hideError();
+    
+    const name = document.getElementById('room-name').value || `Sala de ${currentUser.username}`;
+    const minPlayers = parseInt(document.getElementById('room-min-players').value) || 3;
+    const maxPlayers = parseInt(document.getElementById('room-max-players').value) || 8;
+    const numImpostors = parseInt(document.getElementById('room-num-impostors').value) || 1;
+    
+    try {
+        const serverUrl = window.SERVER_URL || 'http://localhost:3000';
+        const token = localStorage.getItem('impostor_token');
+        
+        const response = await fetch(`${serverUrl}/api/rooms/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name,
+                minPlayers,
+                maxPlayers,
+                numImpostors
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Error al crear sala');
+        }
+        
+        const data = await response.json();
+        
+        // Unirse por WebSocket
+        socketClient.joinRoom(data.room.id);
+        showScreen('room-waiting');
+    } catch (error) {
+        showError(error.message || 'Error al crear sala');
+    }
+}
+
+/**
+ * Maneja unirse a una sala por formulario
+ */
+async function handleJoinRoom(e) {
+    e.preventDefault();
+    hideError();
+    
+    const roomId = document.getElementById('join-room-id').value.trim().toUpperCase();
+    
+    if (!roomId) {
+        showError('Ingresa un ID de sala válido');
+        return;
+    }
+    
+    await handleJoinRoomById(roomId);
+}
+
+/**
+ * Actualiza la UI de la sala
+ */
+function updateRoomUI(room) {
+    if (!room) return;
+    
+    currentRoom = room;
+    
+    // Actualizar información de la sala
+    const roomInfo = document.getElementById('room-info');
+    if (roomInfo) {
+        roomInfo.innerHTML = `
+            <h2>${room.name || `Sala ${room.id}`}</h2>
+            <p>ID: <strong>${room.id}</strong></p>
+            <p>Jugadores: ${room.players.length}/${room.maxPlayers}</p>
+            <p>Estado: ${room.status === 'waiting' ? 'Esperando jugadores' : 'En juego'}</p>
+        `;
+    }
+    
+    // Actualizar lista de jugadores
+    const playersList = document.getElementById('room-players-list');
+    if (playersList) {
+        playersList.innerHTML = '';
+        room.players.forEach(player => {
+            const playerItem = document.createElement('div');
+            playerItem.className = 'player-item';
+            const isHost = room.hostId === player.userId;
+            playerItem.innerHTML = `
+                <span>${player.username}${isHost ? ' (Host)' : ''}</span>
+            `;
+            playersList.appendChild(playerItem);
+        });
+    }
+    
+    // Mostrar/ocultar botón de iniciar juego (solo host)
+    const startGameBtn = document.getElementById('btn-start-game');
+    if (startGameBtn) {
+        const isHost = room.hostId === currentUser?.id;
+        const canStart = room.status === 'waiting' && 
+                        room.players.length >= (room.settings?.minPlayers || 3) &&
+                        isHost;
+        startGameBtn.style.display = canStart ? 'block' : 'none';
+    }
+}
+
+/**
+ * Maneja salir de la sala
+ */
+function handleLeaveRoom() {
+    socketClient.leaveRoom();
+    currentRoom = null;
+    showScreen('rooms');
+    loadRooms();
+}
+
+/**
+ * Maneja iniciar el juego
+ */
+function handleStartGame() {
+    hideError();
+    try {
+        socketClient.startGame();
+    } catch (error) {
+        showError(error.message || 'Error al iniciar el juego');
+    }
+}
+
+// ============================================
+// JUEGO
+// ============================================
+
+/**
+ * Maneja el cambio de fase del juego
+ */
+function handlePhaseChange(phase, message) {
+    switch (phase) {
+        case 'roles':
+            showScreen('roles');
+            break;
+        case 'clues':
+            showScreen('clues');
+            break;
+        case 'voting':
+            showScreen('voting');
+            break;
+        case 'results':
+            showScreen('results');
+            break;
+        case 'victory':
+            showScreen('victory');
+            break;
+    }
+    
+    if (message) {
+        console.log('[Game]', message);
+    }
+}
+
+/**
+ * Actualiza la UI del juego según el estado recibido
+ */
+function updateGameUI(gameState, phase) {
+    if (!gameState) return;
+    
+    currentGameState = gameState;
+    currentPhase = phase || gameState.phase;
+    
+    // Actualizar según la fase actual
+    switch (currentPhase) {
+        case 'roles':
+            displayRoles(gameState);
+            break;
+        case 'clues':
+            displayCluesPhase(gameState);
+            break;
+        case 'voting':
+            displayVotingPhase(gameState);
+            break;
+        case 'results':
+            // Los resultados se muestran cuando llega el evento votingResults
+            break;
+    }
+}
+
+/**
+ * Muestra la pantalla de roles
+ */
+function displayRoles(gameState) {
     const container = document.getElementById('roles-container');
+    if (!container) return;
+    
     container.innerHTML = '';
     
-    gameState.players.forEach((player, index) => {
+    // Encontrar el jugador actual
+    const currentPlayer = gameState.players.find(p => p.userId === currentUser.id);
+    
+    if (currentPlayer) {
         const roleCard = document.createElement('div');
         roleCard.className = 'role-card';
         
-        if (player.isImpostor) {
+        if (currentPlayer.isImpostor) {
             roleCard.classList.add('impostor-card');
             roleCard.innerHTML = `
                 <div class="role-icon">🕵️</div>
-                <h3>${player.name}</h3>
+                <h3>${currentPlayer.username}</h3>
                 <p class="role-badge impostor-badge">IMPOSTOR</p>
                 <p class="role-instruction">No conoces la palabra secreta. Debes deducirla de las pistas.</p>
             `;
@@ -193,7 +625,7 @@ function displayRoles() {
             roleCard.classList.add('citizen-card');
             roleCard.innerHTML = `
                 <div class="role-icon">👤</div>
-                <h3>${player.name}</h3>
+                <h3>${currentPlayer.username}</h3>
                 <p class="role-badge citizen-badge">CIUDADANO</p>
                 <p class="secret-word">Palabra secreta: <strong>${gameState.secretWord}</strong></p>
                 <p class="role-instruction">Debes dar pistas relacionadas con esta palabra.</p>
@@ -201,190 +633,86 @@ function displayRoles() {
         }
         
         container.appendChild(roleCard);
-    });
-}
-
-// ============================================
-// PANTALLA DE PISTAS
-// ============================================
-
-/**
- * Inicia la fase de pistas
- */
-function startCluesPhase() {
-    // Resetear pistas
-    gameState.clues = [];
-    gameState.currentTurn = 0;
-    
-    // Mostrar pantalla de pistas
-    showScreen('clues');
-    
-    // Mostrar primer turno
-    displayCurrentTurn();
-    updateCluesList();
+    }
 }
 
 /**
- * Muestra el turno actual del jugador
+ * Muestra la fase de pistas
  */
-function displayCurrentTurn() {
+function displayCluesPhase(gameState) {
     const activePlayers = gameState.players.filter(p => !p.isEliminated);
+    const currentTurnIndex = gameState.currentTurn;
     
-    if (gameState.currentTurn >= activePlayers.length) {
-        // Todos han dado pista
-        finishCluesPhase();
+    if (currentTurnIndex >= activePlayers.length) {
+        // Todos han dado pista, esperar cambio de fase
         return;
     }
     
-    const currentPlayer = activePlayers[gameState.currentTurn];
+    const currentTurnPlayer = activePlayers[currentTurnIndex];
+    const isMyTurn = currentTurnPlayer.userId === currentUser.id;
+    
+    // Actualizar información del turno
     const playerNameElement = document.getElementById('current-player-name');
     const playerRoleElement = document.getElementById('current-player-role');
     const instructionsElement = document.getElementById('clues-instructions');
     const clueInput = document.getElementById('clue-input');
+    const submitBtn = document.getElementById('btn-submit-clue');
     
-    playerNameElement.textContent = currentPlayer.name;
-    
-    if (currentPlayer.isImpostor) {
-        playerRoleElement.textContent = 'Rol: Impostor';
-        playerRoleElement.className = 'impostor-text';
-        instructionsElement.textContent = 'Eres el impostor. Da una pista basada en lo que has escuchado.';
-    } else {
-        playerRoleElement.textContent = 'Rol: Ciudadano';
-        playerRoleElement.className = 'citizen-text';
-        instructionsElement.textContent = `La palabra secreta es "${gameState.secretWord}". Da una pista relacionada.`;
+    if (playerNameElement) {
+        playerNameElement.textContent = currentTurnPlayer.username;
     }
     
-    // Limpiar input
-    clueInput.value = '';
-    clueInput.focus();
-    
-    // Mostrar/ocultar botones
-    document.getElementById('btn-submit-clue').style.display = 'block';
-    document.getElementById('btn-finish-clues').style.display = 'none';
-    document.getElementById('clue-error').textContent = '';
-}
-
-/**
- * Verifica si una pista coincide exactamente con la palabra secreta
- * @param {string} clue - La pista ingresada por el jugador
- * @param {string} secretWord - La palabra secreta de la ronda
- * @returns {boolean} true si la pista coincide exactamente con la palabra secreta
- */
-function checkWordGuess(clue, secretWord) {
-    // Normalizar ambas palabras: eliminar espacios y convertir a minúsculas
-    const normalizedClue = clue.trim().toLowerCase();
-    const normalizedSecretWord = secretWord.toLowerCase();
-    
-    // Comparar si son exactamente iguales
-    return normalizedClue === normalizedSecretWord;
-}
-
-/**
- * Valida que una pista no haya sido usada previamente por otro jugador
- * @param {string} clue - La pista a validar
- * @param {Array} existingClues - Array de objetos con pistas ya ingresadas {playerId, playerName, clue}
- * @returns {Object} Objeto con isValid (boolean) y errorMessage (string) si hay error
- */
-function validateClueNotRepeated(clue, existingClues) {
-    // Normalizar la pista ingresada para comparación
-    const normalizedClue = clue.trim().toLowerCase();
-    
-    // Si no hay pistas existentes, la pista es válida
-    if (!existingClues || existingClues.length === 0) {
-        return { isValid: true, errorMessage: '' };
-    }
-    
-    // Normalizar todas las pistas existentes y comparar
-    const normalizedExistingClues = existingClues.map(c => c.clue.trim().toLowerCase());
-    
-    if (normalizedExistingClues.includes(normalizedClue)) {
-        return {
-            isValid: false,
-            errorMessage: 'Esta pista ya fue usada por otro jugador. Por favor, ingresa otra palabra.'
-        };
-    }
-    
-    return { isValid: true, errorMessage: '' };
-}
-
-/**
- * Procesa la pista del jugador actual
- */
-function submitClue() {
-    const clueInput = document.getElementById('clue-input');
-    const clue = clueInput.value.trim().toLowerCase();
-    const errorElement = document.getElementById('clue-error');
-    
-    // Validar pista
-    if (!clue) {
-        errorElement.textContent = 'Por favor, ingresa una pista';
-        return;
-    }
-    
-    if (clue.length < 2) {
-        errorElement.textContent = 'La pista debe tener al menos 2 caracteres';
-        return;
-    }
-    
-    // Validar que la pista no se repita con las pistas de otros jugadores
-    const validationResult = validateClueNotRepeated(clueInput.value.trim(), gameState.clues);
-    if (!validationResult.isValid) {
-        errorElement.textContent = validationResult.errorMessage;
-        return;
-    }
-    
-    // Obtener jugador actual antes de verificar adivinanza
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    const currentPlayer = activePlayers[gameState.currentTurn];
-    
-    // Verificar si el jugador adivinó la palabra secreta exacta
-    if (checkWordGuess(clueInput.value.trim(), gameState.secretWord)) {
-        // Mostrar mensaje informativo
-        const playerRole = currentPlayer.isImpostor ? 'impostor' : 'jugador';
-        alert(`¡${currentPlayer.name} (${playerRole}) adivinó la palabra secreta "${gameState.secretWord}"!\n\nLa ronda finaliza y el juego se reinicia.`);
+    if (isMyTurn) {
+        if (playerRoleElement) {
+            playerRoleElement.textContent = currentTurnPlayer.isImpostor ? 'Rol: Impostor' : 'Rol: Ciudadano';
+            playerRoleElement.className = currentTurnPlayer.isImpostor ? 'impostor-text' : 'citizen-text';
+        }
         
-        // Reiniciar el juego automáticamente
-        resetGame();
-        return;
-    }
-    
-    // Agregar pista
-    
-    gameState.clues.push({
-        playerId: currentPlayer.id,
-        playerName: currentPlayer.name,
-        clue: clueInput.value.trim()
-    });
-    
-    // Avanzar turno
-    gameState.currentTurn++;
-    updateCluesList();
-    
-    // Mostrar siguiente turno o finalizar
-    if (gameState.currentTurn >= activePlayers.length) {
-        finishCluesPhase();
+        if (instructionsElement) {
+            if (currentTurnPlayer.isImpostor) {
+                instructionsElement.textContent = 'Eres el impostor. Da una pista basada en lo que has escuchado.';
+            } else {
+                instructionsElement.textContent = `La palabra secreta es "${gameState.secretWord}". Da una pista relacionada.`;
+            }
+        }
+        
+        if (clueInput) {
+            clueInput.disabled = false;
+            clueInput.focus();
+        }
+        
+        if (submitBtn) {
+            submitBtn.style.display = 'block';
+        }
     } else {
-        displayCurrentTurn();
+        if (instructionsElement) {
+            instructionsElement.textContent = `Esperando a que ${currentTurnPlayer.username} dé su pista...`;
+        }
+        
+        if (clueInput) {
+            clueInput.disabled = true;
+            clueInput.value = '';
+        }
+        
+        if (submitBtn) {
+            submitBtn.style.display = 'none';
+        }
     }
-}
-
-/**
- * Finaliza la fase de pistas
- */
-function finishCluesPhase() {
-    document.getElementById('btn-submit-clue').style.display = 'none';
-    document.getElementById('btn-finish-clues').style.display = 'block';
-    document.getElementById('clues-instructions').textContent = 'Todos han dado su pista. Presiona "Finalizar Ronda" para continuar a la votación.';
+    
+    // Actualizar lista de pistas
+    updateCluesDisplay(gameState);
 }
 
 /**
  * Actualiza la lista de pistas mostradas
  */
-function updateCluesList() {
+function updateCluesDisplay(gameState) {
     const cluesList = document.getElementById('clues-list');
+    if (!cluesList) return;
+    
     cluesList.innerHTML = '';
     
-    if (gameState.clues.length === 0) {
+    if (!gameState.clues || gameState.clues.length === 0) {
         cluesList.innerHTML = '<p class="empty-state">Aún no hay pistas</p>';
         return;
     }
@@ -400,201 +728,168 @@ function updateCluesList() {
     });
 }
 
-// ============================================
-// PANTALLA DE VOTACIÓN
-// ============================================
-
 /**
- * Inicia la fase de votación
+ * Maneja enviar una pista
  */
-function startVotingPhase() {
-    // Resetear votos
-    gameState.votes = {};
-    gameState.currentVotingTurn = 0;
+function handleSubmitClue() {
+    const clueInput = document.getElementById('clue-input');
+    if (!clueInput) return;
     
-    // Mostrar pantalla de votación
-    showScreen('voting');
+    const clue = clueInput.value.trim();
     
-    // Mostrar pistas
-    displayVotingClues();
-    
-    // Mostrar primer turno de votación
-    displayCurrentVotingTurn();
-}
-
-/**
- * Muestra las pistas en la pantalla de votación
- */
-function displayVotingClues() {
-    const cluesList = document.getElementById('voting-clues-list');
-    cluesList.innerHTML = '';
-    
-    gameState.clues.forEach(clueData => {
-        const clueItem = document.createElement('div');
-        clueItem.className = 'clue-item';
-        clueItem.innerHTML = `
-            <span class="clue-player">${clueData.playerName}:</span>
-            <span class="clue-text">${clueData.clue}</span>
-        `;
-        cluesList.appendChild(clueItem);
-    });
-}
-
-/**
- * Muestra el turno actual de votación
- */
-function displayCurrentVotingTurn() {
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    const subtitle = document.querySelector('#screen-voting .subtitle');
-    
-    if (gameState.currentVotingTurn >= activePlayers.length) {
-        // Todos han votado
-        calculateVotingResults();
+    if (!clue) {
+        showError('Por favor, ingresa una pista');
         return;
     }
     
-    const currentVoter = activePlayers[gameState.currentVotingTurn];
-    subtitle.textContent = `${currentVoter.name} está votando...`;
+    if (clue.length < 2) {
+        showError('La pista debe tener al menos 2 caracteres');
+        return;
+    }
     
-    // Mostrar jugadores disponibles para votar (excluyendo al votante actual)
-    displayVotingPlayers(activePlayers, currentVoter);
+    hideError();
+    
+    try {
+        socketClient.submitClue(clue);
+        clueInput.value = '';
+    } catch (error) {
+        showError(error.message || 'Error al enviar pista');
+    }
 }
 
 /**
- * Muestra los jugadores disponibles para votar
- * @param {Array} activePlayers - Lista de jugadores activos
- * @param {Object} currentVoter - Jugador que está votando actualmente
+ * Muestra la fase de votación
  */
-function displayVotingPlayers(activePlayers, currentVoter) {
+function displayVotingPhase(gameState) {
+    // Mostrar pistas
+    const votingCluesList = document.getElementById('voting-clues-list');
+    if (votingCluesList) {
+        votingCluesList.innerHTML = '';
+        
+        if (gameState.clues && gameState.clues.length > 0) {
+            gameState.clues.forEach(clueData => {
+                const clueItem = document.createElement('div');
+                clueItem.className = 'clue-item';
+                clueItem.innerHTML = `
+                    <span class="clue-player">${clueData.playerName}:</span>
+                    <span class="clue-text">${clueData.clue}</span>
+                `;
+                votingCluesList.appendChild(clueItem);
+            });
+        }
+    }
+    
+    // Mostrar jugadores para votar
+    updateVotingUI(gameState);
+}
+
+/**
+ * Actualiza la UI de votación
+ */
+function updateVotingUI(gameState) {
+    const activePlayers = gameState.players.filter(p => !p.isEliminated);
+    const currentVotingTurn = gameState.currentVotingTurn || 0;
+    
+    if (currentVotingTurn >= activePlayers.length) {
+        // Todos han votado, esperar resultados
+        return;
+    }
+    
+    const currentVoter = activePlayers[currentVotingTurn];
+    const isMyTurn = currentVoter.userId === currentUser.id;
+    
+    // Actualizar subtítulo
+    const subtitle = document.querySelector('#screen-voting .subtitle');
+    if (subtitle) {
+        subtitle.textContent = isMyTurn 
+            ? 'Es tu turno de votar' 
+            : `Esperando a que ${currentVoter.username} vote...`;
+    }
+    
+    // Mostrar jugadores disponibles para votar
     const votingContainer = document.getElementById('voting-players');
+    if (!votingContainer) return;
+    
     votingContainer.innerHTML = '';
     
-    // Filtrar jugadores que pueden ser votados (excluir al votante)
-    const votablePlayers = activePlayers.filter(p => p.id !== currentVoter.id);
-    
-    if (votablePlayers.length === 0) {
-        // Caso edge: solo queda un jugador
-        calculateVotingResults();
-        return;
-    }
-    
-    votablePlayers.forEach(player => {
-        const playerCard = document.createElement('div');
-        playerCard.className = 'voting-card';
-        playerCard.dataset.playerId = player.id;
+    if (isMyTurn) {
+        // Filtrar jugadores que pueden ser votados (excluir al votante)
+        const votablePlayers = activePlayers.filter(p => p.userId !== currentUser.id);
         
-        playerCard.innerHTML = `
-            <div class="voting-card-content">
-                <h4>${player.name}</h4>
-                <p class="voting-role">👤 Jugador</p>
-            </div>
-        `;
-        
-        // Agregar evento de click
-        playerCard.addEventListener('click', function() {
-            // Remover selección anterior
-            document.querySelectorAll('.voting-card').forEach(card => {
-                card.classList.remove('selected');
+        votablePlayers.forEach(player => {
+            const playerCard = document.createElement('div');
+            playerCard.className = 'voting-card';
+            playerCard.dataset.playerId = player.userId;
+            
+            playerCard.innerHTML = `
+                <div class="voting-card-content">
+                    <h4>${player.username}</h4>
+                    <p class="voting-role">👤 Jugador</p>
+                </div>
+            `;
+            
+            playerCard.addEventListener('click', function() {
+                document.querySelectorAll('.voting-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                playerCard.classList.add('selected');
+                
+                const submitBtn = document.getElementById('btn-submit-vote');
+                if (submitBtn) {
+                    submitBtn.style.display = 'block';
+                    submitBtn.dataset.votedId = player.userId;
+                }
             });
             
-            // Seleccionar esta tarjeta
-            playerCard.classList.add('selected');
-            
-            // Mostrar botón de confirmar
-            document.getElementById('btn-submit-vote').style.display = 'block';
-            document.getElementById('btn-submit-vote').dataset.votedId = player.id;
+            votingContainer.appendChild(playerCard);
         });
-        
-        votingContainer.appendChild(playerCard);
-    });
+    } else {
+        votingContainer.innerHTML = '<p class="empty-state">Esperando a que otros jugadores voten...</p>';
+    }
+    
+    // Ocultar botón de confirmar si no es mi turno
+    const submitBtn = document.getElementById('btn-submit-vote');
+    if (submitBtn && !isMyTurn) {
+        submitBtn.style.display = 'none';
+    }
 }
 
 /**
- * Procesa el voto del jugador actual
+ * Maneja enviar un voto
  */
-function submitVote() {
+function handleSubmitVote() {
     const voteButton = document.getElementById('btn-submit-vote');
-    const votedPlayerId = parseInt(voteButton.dataset.votedId);
+    if (!voteButton) return;
     
-    if (votedPlayerId === null || votedPlayerId === undefined) {
+    const votedPlayerId = voteButton.dataset.votedId;
+    
+    if (!votedPlayerId) {
+        showError('Selecciona un jugador para votar');
         return;
     }
     
-    // Registrar voto del jugador actual
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    const currentVoter = activePlayers[gameState.currentVotingTurn];
+    hideError();
     
-    gameState.votes[currentVoter.id] = votedPlayerId;
-    
-    // Ocultar botón de confirmar
-    voteButton.style.display = 'none';
-    voteButton.dataset.votedId = '';
-    
-    // Avanzar al siguiente turno
-    gameState.currentVotingTurn++;
-    
-    // Mostrar siguiente turno o calcular resultados
-    if (gameState.currentVotingTurn >= activePlayers.length) {
-        // Todos han votado
-        calculateVotingResults();
-    } else {
-        // Mostrar siguiente turno
-        displayCurrentVotingTurn();
+    try {
+        socketClient.submitVote(votedPlayerId);
+        voteButton.style.display = 'none';
+        voteButton.dataset.votedId = '';
+    } catch (error) {
+        showError(error.message || 'Error al enviar voto');
     }
 }
-
-/**
- * Calcula los resultados de la votación
- */
-function calculateVotingResults() {
-    // Contar votos
-    const voteCounts = {};
-    Object.values(gameState.votes).forEach(votedId => {
-        voteCounts[votedId] = (voteCounts[votedId] || 0) + 1;
-    });
-    
-    // Encontrar el más votado
-    let maxVotes = 0;
-    let mostVotedId = null;
-    
-    Object.entries(voteCounts).forEach(([playerId, count]) => {
-        if (count > maxVotes) {
-            maxVotes = count;
-            mostVotedId = parseInt(playerId);
-        }
-    });
-    
-    // Manejar empates (seleccionar aleatoriamente entre los empatados)
-    const tiedPlayers = Object.entries(voteCounts)
-        .filter(([_, count]) => count === maxVotes)
-        .map(([playerId, _]) => parseInt(playerId));
-    
-    if (tiedPlayers.length > 1) {
-        mostVotedId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
-    }
-    
-    // Eliminar jugador votado
-    const eliminatedPlayer = gameState.players.find(p => p.id === mostVotedId);
-    if (eliminatedPlayer) {
-        eliminatedPlayer.isEliminated = true;
-    }
-    
-    // Mostrar resultados
-    showVotingResults(eliminatedPlayer, voteCounts);
-}
-
-// ============================================
-// PANTALLA DE RESULTADOS
-// ============================================
 
 /**
  * Muestra los resultados de la votación
  */
-function showVotingResults(eliminatedPlayer, voteCounts) {
-    showScreen('results');
-    
+function showVotingResults(data) {
     const resultsContent = document.getElementById('results-content');
+    if (!resultsContent) return;
+    
     resultsContent.innerHTML = '';
+    
+    const { results, victoryCheck } = data;
+    const eliminatedPlayer = results.eliminatedPlayer;
     
     // Información del jugador eliminado
     const resultCard = document.createElement('div');
@@ -605,7 +900,7 @@ function showVotingResults(eliminatedPlayer, voteCounts) {
         resultCard.innerHTML = `
             <div class="result-icon">✅</div>
             <h3>¡Impostor Eliminado!</h3>
-            <p><strong>${eliminatedPlayer.name}</strong> era el impostor y ha sido eliminado.</p>
+            <p><strong>${eliminatedPlayer.username}</strong> era el impostor y ha sido eliminado.</p>
             <p class="result-message">Los ciudadanos ganan esta ronda.</p>
         `;
     } else {
@@ -613,7 +908,7 @@ function showVotingResults(eliminatedPlayer, voteCounts) {
         resultCard.innerHTML = `
             <div class="result-icon">❌</div>
             <h3>Jugador Inocente Eliminado</h3>
-            <p><strong>${eliminatedPlayer.name}</strong> era un ciudadano y ha sido eliminado por error.</p>
+            <p><strong>${eliminatedPlayer.username}</strong> era un ciudadano y ha sido eliminado por error.</p>
             <p class="result-message">El juego continúa...</p>
         `;
     }
@@ -621,79 +916,49 @@ function showVotingResults(eliminatedPlayer, voteCounts) {
     resultsContent.appendChild(resultCard);
     
     // Mostrar conteo de votos
-    const votesCard = document.createElement('div');
-    votesCard.className = 'votes-summary';
-    votesCard.innerHTML = '<h4>Resumen de votos:</h4>';
-    
-    const votesList = document.createElement('div');
-    votesList.className = 'votes-list';
-    
-    Object.entries(voteCounts).forEach(([playerId, count]) => {
-        const player = gameState.players.find(p => p.id === parseInt(playerId));
-        if (player) {
-            const voteItem = document.createElement('div');
-            voteItem.className = 'vote-item';
-            voteItem.innerHTML = `
-                <span>${player.name}:</span>
-                <strong>${count} voto${count !== 1 ? 's' : ''}</strong>
-            `;
-            votesList.appendChild(voteItem);
-        }
-    });
-    
-    votesCard.appendChild(votesList);
-    resultsContent.appendChild(votesCard);
-    
-    // Verificar condiciones de victoria
-    checkVictoryConditions();
-}
-
-/**
- * Verifica las condiciones de victoria
- */
-function checkVictoryConditions() {
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    const activeImpostors = activePlayers.filter(p => p.isImpostor);
-    const activeCitizens = activePlayers.filter(p => !p.isImpostor);
-    
-    // Si no quedan impostores, ganan los ciudadanos
-    if (activeImpostors.length === 0) {
-        showVictoryScreen('citizens');
-        return;
+    if (results.voteCounts) {
+        const votesCard = document.createElement('div');
+        votesCard.className = 'votes-summary';
+        votesCard.innerHTML = '<h4>Resumen de votos:</h4>';
+        
+        const votesList = document.createElement('div');
+        votesList.className = 'votes-list';
+        
+        Object.entries(results.voteCounts).forEach(([playerId, count]) => {
+            const player = currentGameState.players.find(p => p.userId === playerId);
+            if (player) {
+                const voteItem = document.createElement('div');
+                voteItem.className = 'vote-item';
+                voteItem.innerHTML = `
+                    <span>${player.username}:</span>
+                    <strong>${count} voto${count !== 1 ? 's' : ''}</strong>
+                `;
+                votesList.appendChild(voteItem);
+            }
+        });
+        
+        votesCard.appendChild(votesList);
+        resultsContent.appendChild(votesCard);
     }
     
-    // Si el impostor queda solo con 1 persona (o igual número), gana el impostor
-    // Regla: Si impostores >= ciudadanos, el impostor gana
-    if (activeImpostors.length >= activeCitizens.length) {
-        showVictoryScreen('impostor');
-        return;
+    // Si hay un ganador, mostrar pantalla de victoria
+    if (victoryCheck && victoryCheck.winner) {
+        setTimeout(() => {
+            showVictoryScreen(victoryCheck.winner);
+        }, 3000);
     }
-    
-    // El juego continúa
-    // El botón "Continuar Juego" iniciará una nueva ronda de pistas
 }
-
-/**
- * Continúa el juego con una nueva ronda
- */
-function continueGame() {
-    gameState.currentRound++;
-    startCluesPhase();
-}
-
-// ============================================
-// PANTALLA DE VICTORIA
-// ============================================
 
 /**
  * Muestra la pantalla de victoria
- * @param {string} winner - 'citizens' o 'impostor'
  */
 function showVictoryScreen(winner) {
     showScreen('victory');
     
-    const victoryContent = document.getElementById('victory-content');
     const victoryTitle = document.getElementById('victory-title');
+    const victoryContent = document.getElementById('victory-content');
+    
+    if (!victoryTitle || !victoryContent) return;
     
     if (winner === 'citizens') {
         victoryTitle.textContent = '🏆 ¡Ciudadanos Ganaron!';
@@ -721,82 +986,24 @@ function showVictoryScreen(winner) {
 }
 
 /**
- * Reinicia el juego desde el inicio
+ * Maneja continuar el juego (nueva ronda)
  */
-function resetGame() {
-    showScreen('start');
-    gameState = {
-        totalPlayers: 0,
-        totalImpostors: 0,
-        players: [],
-        secretWord: '',
-        currentRound: 1,
-        currentTurn: 0,
-        clues: [],
-        votes: {},
-        currentVotingTurn: 0,
-        currentScreen: 'start'
-    };
-    
-    // Limpiar formulario
-    document.getElementById('start-form').reset();
-    document.getElementById('num-players').value = 4;
-    document.getElementById('num-impostors').value = 1;
-    document.getElementById('start-error').textContent = '';
+function handleContinueGame() {
+    try {
+        socketClient.startNewRound();
+    } catch (error) {
+        showError(error.message || 'Error al iniciar nueva ronda');
+    }
 }
 
-// ============================================
-// EVENT LISTENERS
-// ============================================
-
-// Cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    // Formulario de inicio
-    document.getElementById('start-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        initGame();
-    });
-    
-    // Botón continuar en pantalla de roles
-    document.getElementById('btn-continue-roles').addEventListener('click', function() {
-        startCluesPhase();
-    });
-    
-    // Botón enviar pista
-    document.getElementById('btn-submit-clue').addEventListener('click', function() {
-        submitClue();
-    });
-    
-    // Enter en input de pista
-    document.getElementById('clue-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            submitClue();
-        }
-    });
-    
-    // Botón finalizar pistas
-    document.getElementById('btn-finish-clues').addEventListener('click', function() {
-        startVotingPhase();
-    });
-    
-    // Botón confirmar voto
-    document.getElementById('btn-submit-vote').addEventListener('click', function() {
-        submitVote();
-    });
-    
-    // Botón continuar juego
-    document.getElementById('btn-continue-game').addEventListener('click', function() {
-        continueGame();
-    });
-    
-    // Botón nuevo juego (desde resultados)
-    document.getElementById('btn-new-game').addEventListener('click', function() {
-        resetGame();
-    });
-    
-    // Botón jugar de nuevo (desde victoria)
-    document.getElementById('btn-play-again').addEventListener('click', function() {
-        resetGame();
-    });
-});
-
+/**
+ * Maneja nuevo juego (volver a salas)
+ */
+function handleNewGame() {
+    socketClient.leaveRoom();
+    currentRoom = null;
+    currentGameState = null;
+    currentPhase = null;
+    showScreen('rooms');
+    loadRooms();
+}

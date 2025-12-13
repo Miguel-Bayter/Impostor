@@ -1089,11 +1089,21 @@ socket.on('submitClue', (data) => {
 - [x] Eventos de pistas
 - [x] Eventos de votación
 - [x] Sincronización de estado
+- [x] Cliente WebSocket en frontend (`frontend/socket-client.js`)
+- [x] Integración de autenticación por WebSocket
+- [x] Integración de eventos de salas en frontend
+- [x] Integración de eventos de juego en frontend
+- [x] Reconexión automática
+- [x] Manejo de errores y desconexiones
 
 ### Fase 6: Frontend
-- [ ] Integrar Socket.io en frontend
-- [ ] Actualizar UI en tiempo real
-- [ ] Manejo de errores y reconexión
+- [x] Integrar Socket.io en frontend
+- [x] Actualizar UI en tiempo real
+- [x] Manejo de errores y reconexión
+- [x] Pantalla de autenticación (login/registro)
+- [x] Pantalla de salas (crear/unirse)
+- [x] Pantalla de espera en sala
+- [x] Refactorización de game.js para usar WebSockets
 
 ### Fase 7: Seguridad
 - [x] Validaciones en servidor

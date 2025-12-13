@@ -8,46 +8,176 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Pantalla de Inicio -->
-    <section id="screen-start" class="screen active">
+    <!-- Mensaje de error global -->
+    <div id="global-error" class="global-error" style="display: none;" role="alert"></div>
+
+    <!-- Pantalla de Autenticación -->
+    <section id="screen-auth" class="screen">
         <div class="container">
             <h1 class="title">🎮 Juego Impostor</h1>
-            <p class="subtitle">Descubre quién es el impostor antes de que sea demasiado tarde</p>
+            <p class="subtitle">Inicia sesión o regístrate para jugar</p>
             
-            <form id="start-form" class="form-container">
-                <div class="form-group">
-                    <label for="num-players">Número de Jugadores:</label>
-                    <input 
-                        type="number" 
-                        id="num-players" 
-                        name="num-players" 
-                        min="4" 
-                        max="20" 
-                        value="4" 
-                        required
-                        aria-label="Número de jugadores (mínimo 4)"
-                    >
-                    <small class="form-hint">Mínimo: 4 jugadores</small>
+            <form id="auth-form" class="form-container">
+                <div id="auth-mode" data-mode="login">
+                    <div id="auth-username-field" class="form-group" style="display: none;">
+                        <label for="auth-username">Nombre de Usuario:</label>
+                        <input 
+                            type="text" 
+                            id="auth-username" 
+                            name="auth-username" 
+                            placeholder="nombre_usuario"
+                            required
+                            aria-label="Nombre de usuario"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="auth-email">Email:</label>
+                        <input 
+                            type="email" 
+                            id="auth-email" 
+                            name="auth-email" 
+                            placeholder="usuario@ejemplo.com"
+                            required
+                            aria-label="Email"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="auth-password">Contraseña:</label>
+                        <input 
+                            type="password" 
+                            id="auth-password" 
+                            name="auth-password" 
+                            placeholder="••••••••"
+                            required
+                            aria-label="Contraseña"
+                        >
+                    </div>
+                    
+                    <button type="submit" id="auth-submit" class="btn btn-primary">Iniciar Sesión</button>
+                    <button type="button" id="auth-toggle" class="btn btn-secondary">¿No tienes cuenta? Regístrate</button>
                 </div>
-                
-                <div class="form-group">
-                    <label for="num-impostors">Número de Impostores:</label>
-                    <input 
-                        type="number" 
-                        id="num-impostors" 
-                        name="num-impostors" 
-                        min="1" 
-                        max="3" 
-                        value="1" 
-                        required
-                        aria-label="Número de impostores (1-3)"
-                    >
-                    <small class="form-hint">Máximo: 3 impostores</small>
-                </div>
-                
-                <button type="submit" class="btn btn-primary">Comenzar Juego</button>
-                <div id="start-error" class="error-message" role="alert"></div>
             </form>
+        </div>
+    </section>
+
+    <!-- Pantalla de Salas -->
+    <section id="screen-rooms" class="screen">
+        <div class="container">
+            <h1 class="title">🏠 Salas de Juego</h1>
+            <p class="subtitle">Crea una nueva sala o únete a una existente</p>
+            
+            <div class="rooms-section">
+                <div class="create-room-section">
+                    <h2>Crear Nueva Sala</h2>
+                    <form id="create-room-form" class="form-container">
+                        <div class="form-group">
+                            <label for="room-name">Nombre de la Sala:</label>
+                            <input 
+                                type="text" 
+                                id="room-name" 
+                                name="room-name" 
+                                placeholder="Mi Sala"
+                                aria-label="Nombre de la sala"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="room-min-players">Jugadores Mínimos:</label>
+                            <input 
+                                type="number" 
+                                id="room-min-players" 
+                                name="room-min-players" 
+                                min="3" 
+                                max="8" 
+                                value="3"
+                                aria-label="Jugadores mínimos"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="room-max-players">Jugadores Máximos:</label>
+                            <input 
+                                type="number" 
+                                id="room-max-players" 
+                                name="room-max-players" 
+                                min="3" 
+                                max="8" 
+                                value="8"
+                                aria-label="Jugadores máximos"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="room-num-impostors">Número de Impostores:</label>
+                            <input 
+                                type="number" 
+                                id="room-num-impostors" 
+                                name="room-num-impostors" 
+                                min="1" 
+                                max="3" 
+                                value="1"
+                                aria-label="Número de impostores"
+                            >
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Crear Sala</button>
+                    </form>
+                </div>
+                
+                <div class="join-room-section">
+                    <h2>Unirse a Sala</h2>
+                    <form id="join-room-form" class="form-container">
+                        <div class="form-group">
+                            <label for="join-room-id">ID de Sala:</label>
+                            <input 
+                                type="text" 
+                                id="join-room-id" 
+                                name="join-room-id" 
+                                placeholder="ABC123"
+                                maxlength="6"
+                                style="text-transform: uppercase;"
+                                aria-label="ID de sala"
+                            >
+                        </div>
+                        <button type="submit" class="btn btn-primary">Unirse</button>
+                    </form>
+                </div>
+                
+                <div class="available-rooms-section">
+                    <div class="section-header">
+                        <h2>Salas Disponibles</h2>
+                        <button id="btn-refresh-rooms" class="btn btn-secondary">Actualizar</button>
+                    </div>
+                    <div id="rooms-list" class="rooms-list">
+                        <!-- Las salas se mostrarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pantalla de Espera en Sala -->
+    <section id="screen-room-waiting" class="screen">
+        <div class="container">
+            <h1 class="title">🏠 Sala de Juego</h1>
+            
+            <div id="room-info" class="room-info">
+                <!-- La información de la sala se mostrará aquí -->
+            </div>
+            
+            <div class="players-section">
+                <h2>Jugadores en la Sala</h2>
+                <div id="room-players-list" class="players-list">
+                    <!-- Los jugadores se mostrarán aquí -->
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="btn-start-game" class="btn btn-primary" style="display: none;">Iniciar Juego</button>
+                <button id="btn-leave-room" class="btn btn-secondary">Salir de la Sala</button>
+            </div>
         </div>
     </section>
 
@@ -171,6 +301,7 @@
     <!-- Socket.io se cargará desde el backend cuando esté disponible -->
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
     <script src="words.js"></script>
+    <script src="socket-client.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

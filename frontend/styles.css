@@ -739,3 +739,191 @@ body {
     }
 }
 
+/* ============================================
+   PANTALLA DE AUTENTICACIÓN
+   ============================================ */
+
+#screen-auth .form-container {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+#auth-toggle {
+    margin-top: var(--spacing-sm);
+    width: 100%;
+}
+
+/* ============================================
+   PANTALLA DE SALAS
+   ============================================ */
+
+.rooms-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+}
+
+.create-room-section,
+.join-room-section {
+    background: var(--bg-card);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+}
+
+.available-rooms-section {
+    grid-column: 1 / -1;
+    background: var(--bg-card);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.rooms-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.room-card {
+    background: var(--bg-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    border: var(--border-width) solid var(--color-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    transition: all var(--transition-normal);
+}
+
+.room-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.room-info h3 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.room-info p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: var(--spacing-xs) 0;
+}
+
+/* ============================================
+   PANTALLA DE ESPERA EN SALA
+   ============================================ */
+
+.room-info {
+    background: var(--bg-card);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-lg);
+    text-align: center;
+}
+
+.room-info h2 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.room-info p {
+    color: var(--text-secondary);
+    margin: var(--spacing-xs) 0;
+}
+
+.room-info strong {
+    color: var(--text-primary);
+}
+
+.players-section {
+    background: var(--bg-card);
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-lg);
+}
+
+.players-section h2 {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.players-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing-sm);
+}
+
+.player-item {
+    background: var(--bg-secondary);
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    border: var(--border-width) solid var(--color-secondary);
+    text-align: center;
+}
+
+/* ============================================
+   MENSAJE DE ERROR GLOBAL
+   ============================================ */
+
+.global-error {
+    position: fixed;
+    top: var(--spacing-md);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-danger);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    max-width: 90%;
+    text-align: center;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* ============================================
+   RESPONSIVE PARA NUEVAS PANTALLAS
+   ============================================ */
+
+@media (max-width: 768px) {
+    .rooms-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .available-rooms-section {
+        grid-column: 1;
+    }
+    
+    .rooms-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .players-list {
+        grid-template-columns: 1fr;
+    }
+}
+
