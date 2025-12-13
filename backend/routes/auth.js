@@ -13,6 +13,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
 const { authenticateToken } = require('../middleware/auth');
+const { sanitizeUsername, sanitizeEmail } = require('../utils/sanitizer');
 
 /**
  * POST /api/auth/register
@@ -37,8 +38,27 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Crear usuario
-    const user = await User.create(username, email, password);
+    // Sanitizar inputs
+    const sanitizedUsername = sanitizeUsername(username);
+    const sanitizedEmail = sanitizeEmail(email);
+
+    // Validar que los inputs sanitizados son válidos
+    if (!sanitizedUsername || sanitizedUsername.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Nombre de usuario inválido',
+        message: 'El nombre de usuario contiene caracteres no permitidos o está vacío'
+      });
+    }
+
+    if (!sanitizedEmail) {
+      return res.status(400).json({
+        error: 'Email inválido',
+        message: 'El formato del email no es válido'
+      });
+    }
+
+    // Crear usuario con datos sanitizados
+    const user = await User.create(sanitizedUsername, sanitizedEmail, password);
 
     // Generar token JWT
     const token = generateToken(user.id, user.username);
@@ -94,8 +114,18 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Buscar usuario por email
-    const user = User.findByEmail(email);
+    // Sanitizar email
+    const sanitizedEmail = sanitizeEmail(email);
+
+    if (!sanitizedEmail) {
+      return res.status(400).json({
+        error: 'Email inválido',
+        message: 'El formato del email no es válido'
+      });
+    }
+
+    // Buscar usuario por email (usar email sanitizado)
+    const user = User.findByEmail(sanitizedEmail);
 
     if (!user) {
       return res.status(401).json({

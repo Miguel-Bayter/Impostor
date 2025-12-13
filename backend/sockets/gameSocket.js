@@ -23,6 +23,7 @@
 const Game = require('../models/Game');
 const Room = require('../models/Room');
 const { checkRateLimit } = require('../utils/socketRateLimiter');
+const { sanitizeClue } = require('../utils/sanitizer');
 
 /**
  * Configurar handlers de juego para WebSocket
@@ -230,6 +231,16 @@ function setupGameHandlers(io) {
           });
         }
 
+        // Sanitizar pista (escapar HTML, limitar longitud, normalizar espacios)
+        const sanitizedClue = sanitizeClue(clue);
+        
+        if (!sanitizedClue || sanitizedClue.trim().length === 0) {
+          return socket.emit('game:error', {
+            error: 'Pista inválida',
+            message: 'La pista no puede estar vacía después de sanitización'
+          });
+        }
+
         // Verificar que el usuario está en la sala
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
@@ -238,8 +249,8 @@ function setupGameHandlers(io) {
           });
         }
 
-        // Procesar pista
-        const result = Game.submitClue(roomId, socket.userId, clue);
+        // Procesar pista (usar la versión sanitizada)
+        const result = Game.submitClue(roomId, socket.userId, sanitizedClue);
 
         // Si adivinó la palabra secreta
         if (result.wordGuessed) {

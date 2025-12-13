@@ -1111,6 +1111,13 @@ socket.on('submitClue', (data) => {
 - [x] Sanitización de inputs
 - [x] Prevención de trampas
 
+**Nota**: La sanitización de inputs está implementada usando la librería `validator` para:
+- Escapar HTML en pistas y nombres de usuario (prevención de XSS)
+- Validar y sanitizar emails
+- Limitar longitud de inputs para prevenir DoS
+- Normalizar espacios y caracteres especiales
+- Funciones de sanitización disponibles en `backend/utils/sanitizer.js`
+
 ### Fase 8: Deploy
 - [ ] Deploy backend
 - [ ] Deploy frontend

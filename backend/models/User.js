@@ -8,6 +8,7 @@
 
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
+const { sanitizeUsername, sanitizeEmail } = require('../utils/sanitizer');
 
 class User {
   constructor() {
@@ -57,15 +58,28 @@ class User {
    * @returns {Promise<Object>} Usuario creado (sin passwordHash)
    */
   async create(username, email, password) {
-    // Validar datos
-    const validation = this.validateUserData(username, email, password);
+    // Sanitizar inputs primero (antes de validar)
+    const sanitizedUsername = sanitizeUsername(username);
+    const sanitizedEmail = sanitizeEmail(email);
+
+    // Validar que los inputs sanitizados son válidos
+    if (!sanitizedUsername || sanitizedUsername.trim().length === 0) {
+      throw new Error('El nombre de usuario contiene caracteres no permitidos o está vacío');
+    }
+
+    if (!sanitizedEmail) {
+      throw new Error('El formato del email no es válido');
+    }
+
+    // Validar datos (usar datos sanitizados)
+    const validation = this.validateUserData(sanitizedUsername, sanitizedEmail, password);
     if (!validation.isValid) {
       throw new Error(validation.errors.join(', '));
     }
 
-    // Normalizar email (lowercase)
-    const normalizedEmail = email.toLowerCase().trim();
-    const normalizedUsername = username.trim();
+    // Normalizar email (ya está en lowercase por sanitizeEmail)
+    const normalizedEmail = sanitizedEmail;
+    const normalizedUsername = sanitizedUsername;
 
     // Verificar que el email no exista
     if (this.usersByEmail.has(normalizedEmail)) {
@@ -108,8 +122,13 @@ class User {
    * @returns {Object|null} Usuario encontrado (con passwordHash para verificación)
    */
   findByEmail(email) {
-    const normalizedEmail = email.toLowerCase().trim();
-    const userId = this.usersByEmail.get(normalizedEmail);
+    // Sanitizar email antes de buscar
+    const sanitizedEmail = sanitizeEmail(email);
+    if (!sanitizedEmail) {
+      return null;
+    }
+
+    const userId = this.usersByEmail.get(sanitizedEmail);
     
     if (!userId) {
       return null;
