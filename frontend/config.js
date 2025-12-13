@@ -6,15 +6,19 @@
 // Detectar si estamos en producción (Vercel inyecta esta variable)
 const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
+// URL del servidor backend en producción (Railway)
+const PRODUCTION_SERVER_URL = 'https://impostor-production-cb9c.up.railway.app';
+
 // URL del servidor backend
 // En producción: usar variable de entorno de Vercel o construir desde window.location
 // En desarrollo: usar localhost
 let SERVER_URL;
 
 if (isProduction) {
-  // En producción, intentar obtener de variable de entorno o usar el mismo dominio
+  // En producción, usar la URL configurada o intentar obtener de variable de entorno
   // Vercel puede inyectar esto como variable de entorno en build time
-  SERVER_URL = window.SERVER_URL || 
+  SERVER_URL = PRODUCTION_SERVER_URL ||
+               window.SERVER_URL || 
                process?.env?.SERVER_URL || 
                process?.env?.VITE_SERVER_URL ||
                // Si no está configurado, intentar construir desde el dominio actual
