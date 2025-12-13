@@ -24,17 +24,44 @@ const { authLimiter, roomsLimiter, generalLimiter } = require('./middleware/rate
 const app = express();
 const server = http.createServer(app);
 
-// Configuración de Socket.io
+// Configuración de Socket.io con CORS dinámico
+const socketIoOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:5500', 'http://localhost:3000', '*'];
+
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "*",
+    origin: socketIoOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
 });
 
+// Configuración de CORS para desarrollo y producción
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:5500', 'http://localhost:3000'];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (mobile apps, Postman, etc.) en desarrollo
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    // Permitir si el origin está en la lista o si es desarrollo
+    if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -232,9 +259,12 @@ app.use((err, req, res, next) => {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0'; // Escuchar en todas las interfaces para producción
+
+server.listen(PORT, HOST, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📡 WebSocket disponible en ws://localhost:${PORT}`);
-  console.log(`🌐 Frontend disponible en http://localhost:${PORT}`);
+  console.log(`📡 WebSocket disponible en ws://${HOST}:${PORT}`);
+  console.log(`🌐 Entorno: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔒 CORS permitido para: ${allowedOrigins.join(', ')}`);
 });
 

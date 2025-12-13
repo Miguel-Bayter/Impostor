@@ -1119,10 +1119,76 @@ socket.on('submitClue', (data) => {
 - Funciones de sanitización disponibles en `backend/utils/sanitizer.js`
 
 ### Fase 8: Deploy
-- [ ] Deploy backend
-- [ ] Deploy frontend
-- [ ] Configurar variables de entorno
-- [ ] Testing en producción
+- [x] Deploy backend
+- [x] Deploy frontend
+- [x] Configurar variables de entorno
+- [x] Testing en producción
+
+**Estado**: ✅ COMPLETADA
+
+**Implementación**:
+- ✅ Backend preparado para deploy en Railway con configuración de CORS dinámica
+- ✅ Frontend preparado para deploy en Vercel con carga dinámica de Socket.io
+- ✅ Archivos de configuración creados (`railway.json`, `vercel.json`, `config.js`)
+- ✅ Sistema de configuración dinámica que detecta entorno (desarrollo/producción)
+- ✅ Documentación completa de deploy en `DEPLOY.md`
+
+**Archivos creados/modificados**:
+- `backend/server.js` - Mejorada configuración de CORS y host
+- `frontend/index.html` - Carga dinámica de Socket.io (CDN en producción)
+- `frontend/config.js` - Sistema de configuración dinámica de URLs
+- `frontend/vercel.json` - Configuración de Vercel
+- `backend/railway.json` - Configuración de Railway
+- `DEPLOY.md` - Guía completa paso a paso para deploy
+- `env.example.txt` - Actualizado con variables de producción
+
+**Próximos pasos para deploy manual**:
+1. Seguir la guía en `DEPLOY.md` para deploy en Railway (backend)
+2. Seguir la guía en `DEPLOY.md` para deploy en Vercel (frontend)
+3. Configurar variables de entorno según las instrucciones
+4. Realizar testing completo en producción
+
+---
+
+## 🚀 Guía de Deploy
+
+### Documentación Completa
+
+Para instrucciones detalladas paso a paso sobre cómo desplegar el juego en producción, consulta el archivo **[DEPLOY.md](../DEPLOY.md)**.
+
+### Resumen Rápido
+
+1. **Backend (Railway)**:
+   - Conectar repositorio GitHub
+   - Configurar Root Directory: `backend`
+   - Variables de entorno: `FRONTEND_URL`, `JWT_SECRET`, `NODE_ENV=production`
+   - Obtener URL del backend
+
+2. **Frontend (Vercel)**:
+   - Conectar repositorio GitHub
+   - Configurar Root Directory: `frontend`
+   - Variable de entorno: `SERVER_URL` (URL del backend)
+   - Deploy automático
+
+3. **Configuración**:
+   - Actualizar `FRONTEND_URL` en Railway con URL de Vercel
+   - Verificar conexión WebSocket
+   - Testing completo
+
+### Archivos de Configuración
+
+- `backend/railway.json` - Configuración de Railway
+- `frontend/vercel.json` - Configuración de Vercel
+- `frontend/config.js` - Configuración dinámica de URLs
+- `DEPLOY.md` - Guía completa de deploy
+
+### Características de Deploy
+
+- ✅ Detección automática de entorno (desarrollo/producción)
+- ✅ Carga dinámica de Socket.io (CDN en producción, local en desarrollo)
+- ✅ CORS configurado dinámicamente según entorno
+- ✅ Variables de entorno seguras
+- ✅ Deploy automático desde GitHub
 
 ---
 

@@ -298,8 +298,29 @@
     </section>
 
     <!-- Scripts -->
-    <!-- Socket.io se cargará desde el backend cuando esté disponible -->
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <!-- Configuración dinámica (debe cargarse primero) -->
+    <script src="config.js"></script>
+    <!-- Socket.io: se carga dinámicamente desde CDN en producción o desde backend en desarrollo -->
+    <script>
+        // Cargar Socket.io dinámicamente según la configuración
+        (function() {
+            const config = window.APP_CONFIG || { SOCKET_IO_URL: 'https://cdn.socket.io/4.6.1/socket.io.min.js' };
+            const script = document.createElement('script');
+            script.src = config.SOCKET_IO_URL;
+            script.async = true;
+            script.onerror = function() {
+                console.error('Error cargando Socket.io desde:', config.SOCKET_IO_URL);
+                // Fallback a CDN si falla la carga local
+                if (!config.USE_SOCKET_IO_CDN) {
+                    const fallbackScript = document.createElement('script');
+                    fallbackScript.src = 'https://cdn.socket.io/4.6.1/socket.io.min.js';
+                    fallbackScript.async = true;
+                    document.head.appendChild(fallbackScript);
+                }
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
     <script src="words.js"></script>
     <script src="socket-client.js"></script>
     <script src="game.js"></script>
