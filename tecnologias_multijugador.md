@@ -1080,15 +1080,15 @@ socket.on('submitClue', (data) => {
 - [x] Persistencia de salas (en memoria, migrar a DB en fases posteriores)
 
 ### Fase 4: Lógica del Juego
-- [ ] Migrar lógica de juego al servidor
-- [ ] Implementar turnos sincronizados
-- [ ] Implementar validaciones en servidor
+- [x] Migrar lógica de juego al servidor
+- [x] Implementar turnos sincronizados
+- [x] Implementar validaciones en servidor
 
 ### Fase 5: WebSockets
-- [ ] Conexión WebSocket
-- [ ] Eventos de pistas
-- [ ] Eventos de votación
-- [ ] Sincronización de estado
+- [x] Conexión WebSocket
+- [x] Eventos de pistas
+- [x] Eventos de votación
+- [x] Sincronización de estado
 
 ### Fase 6: Frontend
 - [ ] Integrar Socket.io en frontend
@@ -1096,10 +1096,10 @@ socket.on('submitClue', (data) => {
 - [ ] Manejo de errores y reconexión
 
 ### Fase 7: Seguridad
-- [ ] Validaciones en servidor
+- [x] Validaciones en servidor
 - [ ] Rate limiting
-- [ ] Sanitización de inputs
-- [ ] Prevención de trampas
+- [x] Sanitización de inputs
+- [x] Prevención de trampas
 
 ### Fase 8: Deploy
 - [ ] Deploy backend

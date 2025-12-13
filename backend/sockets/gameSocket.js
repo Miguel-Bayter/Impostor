@@ -1,0 +1,464 @@
+/**
+ * Handlers WebSocket para Lógica del Juego
+ * Fase 4: Lógica del Juego
+ * 
+ * Eventos manejados:
+ * - game:start - Iniciar juego (solo host)
+ * - game:submitClue - Enviar pista
+ * - game:submitVote - Enviar voto
+ * - game:getState - Solicitar estado actual
+ * - game:startNewRound - Iniciar nueva ronda
+ * 
+ * Eventos emitidos:
+ * - game:state - Estado actualizado del juego
+ * - game:clueSubmitted - Nueva pista recibida (broadcast)
+ * - game:turnChanged - Cambio de turno (broadcast)
+ * - game:voteSubmitted - Voto recibido (broadcast)
+ * - game:votingResults - Resultados de votación
+ * - game:phaseChanged - Cambio de fase
+ * - game:wordGuessed - Palabra secreta adivinada
+ * - game:error - Error en operación
+ */
+
+const Game = require('../models/Game');
+const Room = require('../models/Room');
+
+/**
+ * Configurar handlers de juego para WebSocket
+ * @param {Object} io - Instancia de Socket.io
+ */
+function setupGameHandlers(io) {
+  io.on('connection', (socket) => {
+    console.log(`[Game] Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`);
+
+    /**
+     * Evento: game:start
+     * Iniciar juego en una sala (solo el host puede iniciar)
+     * 
+     * Data esperada:
+     * {
+     *   roomId: "ABC123"
+     * }
+     */
+    socket.on('game:start', (data) => {
+      try {
+        const { roomId } = data;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Envía el roomId: { "roomId": "..." }'
+          });
+        }
+
+        // Verificar que la sala existe
+        const room = Room.getRoomInternal(roomId);
+        
+        if (!room) {
+          return socket.emit('game:error', {
+            error: 'Sala no encontrada',
+            message: 'La sala especificada no existe'
+          });
+        }
+
+        // Verificar que el usuario está en la sala
+        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+          return socket.emit('game:error', {
+            error: 'No estás en esta sala',
+            message: 'Debes estar en la sala para iniciar el juego'
+          });
+        }
+
+        // Verificar que el usuario es el host
+        if (room.hostId !== socket.userId) {
+          return socket.emit('game:error', {
+            error: 'Solo el host puede iniciar el juego',
+            message: 'Solo el creador de la sala puede iniciar el juego'
+          });
+        }
+
+        // Verificar que la sala tiene suficientes jugadores
+        const minPlayers = room.settings.minPlayers || 3;
+        if (room.players.length < minPlayers) {
+          return socket.emit('game:error', {
+            error: 'Jugadores insuficientes',
+            message: `Se requieren al menos ${minPlayers} jugadores para iniciar`
+          });
+        }
+
+        // Verificar que no hay un juego ya iniciado
+        if (Game.hasGame(roomId)) {
+          return socket.emit('game:error', {
+            error: 'Juego ya iniciado',
+            message: 'El juego ya está en progreso en esta sala'
+          });
+        }
+
+        // Inicializar juego
+        const numImpostors = room.settings.numImpostors || 1;
+        const gameState = Game.initGame(roomId, room.players, numImpostors);
+
+        // Actualizar estado de la sala
+        Room.updateStatus(roomId, 'in_progress');
+
+        // Enviar estado del juego a todos en la sala
+        // Cada jugador recibe su versión del estado (con/sin palabra secreta según su rol)
+        const playersInRoom = room.players;
+        playersInRoom.forEach(player => {
+          const playerGameState = Game.getGameState(roomId, player.userId);
+          io.to(player.socketId || socket.id).emit('game:state', {
+            gameState: playerGameState,
+            phase: 'roles'
+          });
+        });
+
+        // Broadcast cambio de fase
+        io.to(roomId).emit('game:phaseChanged', {
+          phase: 'roles',
+          message: 'El juego ha comenzado. Revisa tu rol.'
+        });
+
+        console.log(`[Game] Juego iniciado en sala ${roomId} por ${socket.username}`);
+      } catch (error) {
+        console.error('[Game] Error al iniciar juego:', error);
+        socket.emit('game:error', {
+          error: 'Error al iniciar el juego',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Evento: game:getState
+     * Solicitar estado actual del juego
+     * 
+     * Data esperada (opcional):
+     * {
+     *   roomId: "ABC123" (opcional, usa la sala actual si no se especifica)
+     * }
+     */
+    socket.on('game:getState', (data) => {
+      try {
+        const roomId = data?.roomId || socket.currentRoomId;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Especifica el roomId o únete a una sala primero'
+          });
+        }
+
+        // Verificar que el juego existe
+        if (!Game.hasGame(roomId)) {
+          return socket.emit('game:error', {
+            error: 'Juego no encontrado',
+            message: 'El juego no ha sido iniciado en esta sala'
+          });
+        }
+
+        // Obtener estado del juego para este jugador
+        const gameState = Game.getGameState(roomId, socket.userId);
+
+        socket.emit('game:state', {
+          gameState: gameState
+        });
+      } catch (error) {
+        console.error('[Game] Error al obtener estado:', error);
+        socket.emit('game:error', {
+          error: 'Error al obtener estado del juego',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Evento: game:submitClue
+     * Enviar pista del jugador actual
+     * 
+     * Data esperada:
+     * {
+     *   roomId: "ABC123",
+     *   clue: "palabra"
+     * }
+     */
+    socket.on('game:submitClue', (data) => {
+      try {
+        const { roomId, clue } = data;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Envía el roomId: { "roomId": "...", "clue": "..." }'
+          });
+        }
+
+        if (!clue || !clue.trim()) {
+          return socket.emit('game:error', {
+            error: 'Pista requerida',
+            message: 'Envía una pista válida'
+          });
+        }
+
+        // Verificar que el usuario está en la sala
+        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+          return socket.emit('game:error', {
+            error: 'No estás en esta sala',
+            message: 'Debes estar en la sala para enviar pistas'
+          });
+        }
+
+        // Procesar pista
+        const result = Game.submitClue(roomId, socket.userId, clue);
+
+        // Si adivinó la palabra secreta
+        if (result.wordGuessed) {
+          // Notificar a todos
+          io.to(roomId).emit('game:wordGuessed', {
+            guessedBy: result.guessedBy,
+            message: `${result.guessedBy.username} adivinó la palabra secreta!`,
+            gameState: null // Cada jugador recibirá su versión
+          });
+
+          // Enviar estado actualizado a cada jugador
+          const room = Room.getRoomInternal(roomId);
+          if (room) {
+            room.players.forEach(player => {
+              const playerGameState = Game.getGameState(roomId, player.userId);
+              io.to(player.socketId || socket.id).emit('game:state', {
+                gameState: playerGameState
+              });
+            });
+          }
+
+          // Cambiar fase a resultados
+          Game.changePhase(roomId, 'results');
+          io.to(roomId).emit('game:phaseChanged', {
+            phase: 'results',
+            message: 'La palabra secreta fue adivinada. La ronda termina.'
+          });
+
+          console.log(`[Game] Palabra secreta adivinada por ${result.guessedBy.username} en sala ${roomId}`);
+          return;
+        }
+
+        // Broadcast nueva pista
+        const lastClue = result.gameState.clues[result.gameState.clues.length - 1];
+        io.to(roomId).emit('game:clueSubmitted', {
+          clue: lastClue,
+          gameState: null // Cada jugador recibirá su versión
+        });
+
+        // Enviar estado actualizado a cada jugador
+        const room = Room.getRoomInternal(roomId);
+        if (room) {
+          room.players.forEach(player => {
+            const playerGameState = Game.getGameState(roomId, player.userId);
+            io.to(player.socketId || socket.id).emit('game:state', {
+              gameState: playerGameState
+            });
+          });
+        }
+
+        // Si cambió de fase (todos dieron pista)
+        if (result.gameState.phase === 'voting') {
+          io.to(roomId).emit('game:phaseChanged', {
+            phase: 'voting',
+            message: 'Todos han dado su pista. Comienza la votación.'
+          });
+        } else {
+          // Cambio de turno
+          io.to(roomId).emit('game:turnChanged', {
+            currentTurn: result.gameState.currentTurn,
+            message: 'Es el turno del siguiente jugador'
+          });
+        }
+
+        console.log(`[Game] Pista enviada por ${socket.username} en sala ${roomId}`);
+      } catch (error) {
+        console.error('[Game] Error al enviar pista:', error);
+        socket.emit('game:error', {
+          error: 'Error al enviar pista',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Evento: game:submitVote
+     * Enviar voto del jugador actual
+     * 
+     * Data esperada:
+     * {
+     *   roomId: "ABC123",
+     *   votedPlayerId: "user-id-uuid"
+     * }
+     */
+    socket.on('game:submitVote', (data) => {
+      try {
+        const { roomId, votedPlayerId } = data;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Envía el roomId: { "roomId": "...", "votedPlayerId": "..." }'
+          });
+        }
+
+        if (!votedPlayerId) {
+          return socket.emit('game:error', {
+            error: 'Jugador votado requerido',
+            message: 'Envía el ID del jugador por el que votas'
+          });
+        }
+
+        // Verificar que el usuario está en la sala
+        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+          return socket.emit('game:error', {
+            error: 'No estás en esta sala',
+            message: 'Debes estar en la sala para votar'
+          });
+        }
+
+        // Procesar voto
+        const result = Game.submitVote(roomId, socket.userId, votedPlayerId);
+
+        // Broadcast voto recibido
+        io.to(roomId).emit('game:voteSubmitted', {
+          voterId: socket.userId,
+          votedPlayerId: votedPlayerId,
+          votingComplete: result.votingComplete
+        });
+
+        // Enviar estado actualizado a cada jugador
+        const room = Room.getRoomInternal(roomId);
+        if (room) {
+          room.players.forEach(player => {
+            const playerGameState = Game.getGameState(roomId, player.userId);
+            io.to(player.socketId || socket.id).emit('game:state', {
+              gameState: playerGameState
+            });
+          });
+        }
+
+        // Si todos votaron, enviar resultados
+        if (result.votingComplete) {
+          io.to(roomId).emit('game:votingResults', {
+            results: result.results,
+            victoryCheck: result.victoryCheck,
+            message: result.victoryCheck.winner 
+              ? `¡${result.victoryCheck.winner === 'citizens' ? 'Ciudadanos' : 'Impostores'} ganan!`
+              : 'El juego continúa...'
+          });
+
+          // Cambiar fase según resultado
+          if (result.victoryCheck.winner) {
+            io.to(roomId).emit('game:phaseChanged', {
+              phase: 'victory',
+              message: 'El juego ha terminado'
+            });
+          } else {
+            io.to(roomId).emit('game:phaseChanged', {
+              phase: 'results',
+              message: 'Resultados de la votación'
+            });
+          }
+
+          console.log(`[Game] Votación completada en sala ${roomId}. Eliminado: ${result.results.eliminatedPlayer.username}`);
+        } else {
+          // Cambio de turno de votación
+          const gameState = Game.getGameState(roomId, socket.userId);
+          io.to(roomId).emit('game:turnChanged', {
+            currentTurn: gameState.currentVotingTurn,
+            message: 'Es el turno del siguiente jugador para votar'
+          });
+        }
+
+        console.log(`[Game] Voto enviado por ${socket.username} en sala ${roomId}`);
+      } catch (error) {
+        console.error('[Game] Error al enviar voto:', error);
+        socket.emit('game:error', {
+          error: 'Error al enviar voto',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Evento: game:startNewRound
+     * Iniciar nueva ronda (después de ver resultados)
+     * 
+     * Data esperada:
+     * {
+     *   roomId: "ABC123"
+     * }
+     */
+    socket.on('game:startNewRound', (data) => {
+      try {
+        const { roomId } = data;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Envía el roomId: { "roomId": "..." }'
+          });
+        }
+
+        // Verificar que el usuario está en la sala
+        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+          return socket.emit('game:error', {
+            error: 'No estás en esta sala',
+            message: 'Debes estar en la sala para iniciar una nueva ronda'
+          });
+        }
+
+        // Verificar que el usuario es el host
+        const room = Room.getRoomInternal(roomId);
+        if (!room || room.hostId !== socket.userId) {
+          return socket.emit('game:error', {
+            error: 'Solo el host puede iniciar una nueva ronda',
+            message: 'Solo el creador de la sala puede iniciar una nueva ronda'
+          });
+        }
+
+        // Iniciar nueva ronda
+        Game.startNewRound(roomId);
+
+        // Enviar estado actualizado a todos
+        room.players.forEach(player => {
+          const playerGameState = Game.getGameState(roomId, player.userId);
+          io.to(player.socketId || socket.id).emit('game:state', {
+            gameState: playerGameState
+          });
+        });
+
+        // Broadcast cambio de fase
+        io.to(roomId).emit('game:phaseChanged', {
+          phase: 'clues',
+          message: 'Nueva ronda iniciada. Comienza la fase de pistas.'
+        });
+
+        console.log(`[Game] Nueva ronda iniciada en sala ${roomId} por ${socket.username}`);
+      } catch (error) {
+        console.error('[Game] Error al iniciar nueva ronda:', error);
+        socket.emit('game:error', {
+          error: 'Error al iniciar nueva ronda',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Manejar desconexión
+     * Limpiar estado si es necesario
+     */
+    socket.on('disconnect', () => {
+      console.log(`[Game] Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
+      // Nota: No eliminamos el juego si un jugador se desconecta
+      // El juego continúa y el jugador puede reconectarse
+    });
+  });
+}
+
+module.exports = {
+  setupGameHandlers
+};

@@ -3,6 +3,7 @@
  * Fase 1: Configuración inicial
  * Fase 2: Autenticación
  * Fase 3: Sistema de Salas
+ * Fase 4: Lógica del Juego
  */
 
 const express = require('express');
@@ -17,6 +18,7 @@ const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const { authenticateSocket } = require('./middleware/auth');
 const { setupRoomHandlers } = require('./sockets/roomSocket');
+const { setupGameHandlers } = require('./sockets/gameSocket');
 
 const app = express();
 const server = http.createServer(app);
@@ -178,6 +180,9 @@ io.use(authenticateSocket);
 
 // Configurar handlers de WebSocket para salas
 setupRoomHandlers(io);
+
+// Configurar handlers de WebSocket para juego
+setupGameHandlers(io);
 
 // WebSocket connection (solo se ejecuta si la autenticación es exitosa)
 io.on('connection', (socket) => {
