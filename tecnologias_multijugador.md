@@ -1107,7 +1107,7 @@ socket.on('submitClue', (data) => {
 
 ### Fase 7: Seguridad
 - [x] Validaciones en servidor
-- [ ] Rate limiting
+- [x] Rate limiting
 - [x] Sanitización de inputs
 - [x] Prevención de trampas
 

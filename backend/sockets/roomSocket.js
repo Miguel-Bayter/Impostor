@@ -17,6 +17,7 @@
  */
 
 const Room = require('../models/Room');
+const { checkRateLimit } = require('../utils/socketRateLimiter');
 
 /**
  * Configurar handlers de salas para WebSocket
@@ -39,6 +40,16 @@ function setupRoomHandlers(io) {
      * }
      */
     socket.on('room:join', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'room:join');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('room:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de uniones a salas. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const { roomId } = data;
 
@@ -131,6 +142,16 @@ function setupRoomHandlers(io) {
      * }
      */
     socket.on('room:leave', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'room:leave');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('room:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de salidas de salas. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const roomId = data?.roomId || socket.currentRoomId;
 
@@ -161,6 +182,16 @@ function setupRoomHandlers(io) {
      * }
      */
     socket.on('room:state', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'room:state');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('room:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de solicitudes de estado. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const roomId = data?.roomId || socket.currentRoomId;
 

@@ -22,6 +22,7 @@
 
 const Game = require('../models/Game');
 const Room = require('../models/Room');
+const { checkRateLimit } = require('../utils/socketRateLimiter');
 
 /**
  * Configurar handlers de juego para WebSocket
@@ -41,6 +42,16 @@ function setupGameHandlers(io) {
      * }
      */
     socket.on('game:start', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:start');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de inicio de juego. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const { roomId } = data;
 
@@ -138,6 +149,16 @@ function setupGameHandlers(io) {
      * }
      */
     socket.on('game:getState', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:getState');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de solicitudes de estado. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const roomId = data?.roomId || socket.currentRoomId;
 
@@ -182,6 +203,16 @@ function setupGameHandlers(io) {
      * }
      */
     socket.on('game:submitClue', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:submitClue');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de envío de pistas. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const { roomId, clue } = data;
 
@@ -294,6 +325,16 @@ function setupGameHandlers(io) {
      * }
      */
     socket.on('game:submitVote', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:submitVote');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de votación. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const { roomId, votedPlayerId } = data;
 
@@ -393,6 +434,16 @@ function setupGameHandlers(io) {
      * }
      */
     socket.on('game:startNewRound', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:startNewRound');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de inicio de ronda. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
       try {
         const { roomId } = data;
 

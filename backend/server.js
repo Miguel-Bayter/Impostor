@@ -19,6 +19,7 @@ const roomRoutes = require('./routes/rooms');
 const { authenticateSocket } = require('./middleware/auth');
 const { setupRoomHandlers } = require('./sockets/roomSocket');
 const { setupGameHandlers } = require('./sockets/gameSocket');
+const { authLimiter, roomsLimiter, generalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 const server = http.createServer(app);
@@ -203,9 +204,13 @@ io.on('connection', (socket) => {
   });
 });
 
-// Rutas API
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
+// Rutas API con rate limiting
+// Aplicar rate limiting estricto a autenticación
+app.use('/api/auth', authLimiter, authRoutes);
+// Aplicar rate limiting moderado a salas
+app.use('/api/rooms', roomsLimiter, roomRoutes);
+// Aplicar rate limiting general a otras rutas
+app.use('/api', generalLimiter);
 
 // Rutas API básicas
 app.get('/api/health', (req, res) => {
