@@ -40,7 +40,7 @@ const io = socketIo(server, {
 // Configuración de CORS para desarrollo y producción
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:5500', 'http://localhost:3000'];
+  : ['http://127.0.0.1:5500', 'http://localhost:3000'];
 
 const corsOptions = {
   origin: function (origin, callback) {

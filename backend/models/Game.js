@@ -66,6 +66,7 @@ class Game {
       currentVotingTurn: 0, // Índice del jugador que está votando
       phase: 'roles', // 'roles' | 'clues' | 'voting' | 'results' | 'victory'
       winner: null, // 'citizens' | 'impostor' | null
+      rolesConfirmed: new Set(), // Set de playerIds que han confirmado ver sus roles
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -333,6 +334,63 @@ class Game {
   }
 
   /**
+   * Confirmar que un jugador ha visto su rol
+   * @param {string} roomId - ID de la sala
+   * @param {string} playerId - ID del jugador que confirma
+   * @returns {Object} Objeto con success (boolean), phaseChanged (boolean) y gameState
+   */
+  confirmRolesViewed(roomId, playerId) {
+    const gameState = this.gamesByRoomId.get(roomId);
+    
+    if (!gameState) {
+      throw new Error('Juego no encontrado');
+    }
+
+    // Verificar que estamos en fase de roles
+    if (gameState.phase !== 'roles') {
+      throw new Error('No estás en la fase de roles');
+    }
+
+    // Verificar que el jugador está en el juego
+    const player = gameState.players.find(p => p.userId === playerId);
+    if (!player) {
+      throw new Error('Jugador no encontrado en el juego');
+    }
+
+    // Verificar si ya confirmó
+    if (gameState.rolesConfirmed.has(playerId)) {
+      // Ya confirmó, retornar estado actual sin error
+      return {
+        success: true,
+        phaseChanged: false,
+        gameState: this.getGameState(roomId, playerId)
+      };
+    }
+
+    // Marcar como confirmado
+    gameState.rolesConfirmed.add(playerId);
+    gameState.updatedAt = new Date().toISOString();
+
+    // Verificar si todos los jugadores activos han confirmado
+    const activePlayers = gameState.players.filter(p => !p.isEliminated);
+    const allConfirmed = activePlayers.every(p => gameState.rolesConfirmed.has(p.userId));
+
+    let phaseChanged = false;
+    if (allConfirmed) {
+      // Todos confirmaron, cambiar a fase de pistas
+      gameState.phase = 'clues';
+      phaseChanged = true;
+      gameState.updatedAt = new Date().toISOString();
+    }
+
+    return {
+      success: true,
+      phaseChanged: phaseChanged,
+      gameState: this.getGameState(roomId, playerId)
+    };
+  }
+
+  /**
    * Iniciar nueva ronda (después de resultados)
    * @param {string} roomId - ID de la sala
    */
@@ -354,9 +412,10 @@ class Game {
     // Incrementar ronda
     gameState.currentRound++;
 
-    // Resetear pistas y votos
+    // Resetear pistas, votos y confirmaciones de roles
     gameState.clues = [];
     gameState.votes = {};
+    gameState.rolesConfirmed = new Set();
     gameState.currentTurn = 0;
     gameState.currentVotingTurn = 0;
 

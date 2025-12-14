@@ -4,6 +4,8 @@
  * 
  * Eventos manejados:
  * - game:start - Iniciar juego (solo host)
+ * - game:startCluesPhase - Iniciar fase de pistas (solo host)
+ * - game:confirmRoles - Confirmar que el jugador ha visto su rol (deprecated)
  * - game:submitClue - Enviar pista
  * - game:submitVote - Enviar voto
  * - game:getState - Solicitar estado actual
@@ -11,6 +13,7 @@
  * 
  * Eventos emitidos:
  * - game:state - Estado actualizado del juego
+ * - game:rolesConfirmed - Confirmación de rol recibida
  * - game:clueSubmitted - Nueva pista recibida (broadcast)
  * - game:turnChanged - Cambio de turno (broadcast)
  * - game:voteSubmitted - Voto recibido (broadcast)
@@ -108,7 +111,7 @@ function setupGameHandlers(io) {
 
         // Inicializar juego
         const numImpostors = room.settings.numImpostors || 1;
-        const gameState = Game.initGame(roomId, room.players, numImpostors);
+        Game.initGame(roomId, room.players, numImpostors);
 
         // Actualizar estado de la sala
         Room.updateStatus(roomId, 'in_progress');
@@ -135,6 +138,182 @@ function setupGameHandlers(io) {
         console.error('[Game] Error al iniciar juego:', error);
         socket.emit('game:error', {
           error: 'Error al iniciar el juego',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Evento: game:startCluesPhase
+     * Iniciar fase de pistas (solo host puede hacerlo)
+     * 
+     * Data esperada:
+     * {
+     *   roomId: "ABC123"
+     * }
+     */
+    socket.on('game:startCluesPhase', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:startCluesPhase');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de solicitudes. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
+      try {
+        const { roomId } = data;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Envía el roomId: { "roomId": "..." }'
+          });
+        }
+
+        // Verificar que la sala existe
+        const room = Room.getRoomInternal(roomId);
+        if (!room) {
+          return socket.emit('game:error', {
+            error: 'Sala no encontrada',
+            message: 'La sala especificada no existe'
+          });
+        }
+
+        // Verificar que el usuario está en la sala
+        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+          return socket.emit('game:error', {
+            error: 'No estás en esta sala',
+            message: 'Debes estar en la sala para iniciar la fase de pistas'
+          });
+        }
+
+        // Verificar que el usuario es el host
+        if (room.hostId !== socket.userId) {
+          return socket.emit('game:error', {
+            error: 'Solo el host puede iniciar la fase de pistas',
+            message: 'Solo el creador de la sala puede iniciar la partida'
+          });
+        }
+
+        // Verificar que el juego existe
+        if (!Game.hasGame(roomId)) {
+          return socket.emit('game:error', {
+            error: 'Juego no encontrado',
+            message: 'El juego no ha sido iniciado en esta sala'
+          });
+        }
+
+        // Verificar que estamos en fase de roles
+        const gameState = Game.getGameStateInternal(roomId);
+        if (!gameState || gameState.phase !== 'roles') {
+          return socket.emit('game:error', {
+            error: 'Fase incorrecta',
+            message: 'Solo se puede iniciar la fase de pistas desde la fase de roles'
+          });
+        }
+
+        // Cambiar a fase de pistas
+        Game.changePhase(roomId, 'clues');
+
+        // Enviar estado actualizado a todos los jugadores
+        room.players.forEach(player => {
+          const playerGameState = Game.getGameState(roomId, player.userId);
+          io.to(player.socketId || socket.id).emit('game:state', {
+            gameState: playerGameState,
+            phase: 'clues'
+          });
+        });
+
+        // Broadcast cambio de fase
+        io.to(roomId).emit('game:phaseChanged', {
+          phase: 'clues',
+          message: 'El host ha iniciado la partida. Comienza la fase de pistas.'
+        });
+
+        console.log(`[Game] Fase de pistas iniciada en sala ${roomId} por ${socket.username}`);
+      } catch (error) {
+        console.error('[Game] Error al iniciar fase de pistas:', error);
+        socket.emit('game:error', {
+          error: 'Error al iniciar fase de pistas',
+          message: error.message
+        });
+      }
+    });
+
+    /**
+     * Evento: game:confirmRoles
+     * Confirmar que el jugador ha visto su rol (deprecated - mantenido por compatibilidad)
+     * 
+     * Data esperada:
+     * {
+     *   roomId: "ABC123"
+     * }
+     */
+    socket.on('game:confirmRoles', (data) => {
+      // Aplicar rate limiting
+      const rateLimitResult = checkRateLimit(socket.userId, 'game:confirmRoles');
+      if (!rateLimitResult.allowed) {
+        return socket.emit('game:error', {
+          error: 'Rate limit excedido',
+          message: `Has excedido el límite de confirmaciones. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter
+        });
+      }
+
+      try {
+        const { roomId } = data;
+
+        if (!roomId) {
+          return socket.emit('game:error', {
+            error: 'Room ID requerido',
+            message: 'Envía el roomId: { "roomId": "..." }'
+          });
+        }
+
+        // Verificar que el usuario está en la sala
+        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+          return socket.emit('game:error', {
+            error: 'No estás en esta sala',
+            message: 'Debes estar en la sala para confirmar tu rol'
+          });
+        }
+
+        // Confirmar que el jugador vio su rol
+        const result = Game.confirmRolesViewed(roomId, socket.userId);
+
+        // Enviar estado actualizado a todos los jugadores
+        const room = Room.getRoomInternal(roomId);
+        if (room) {
+          room.players.forEach(player => {
+            const playerGameState = Game.getGameState(roomId, player.userId);
+            io.to(player.socketId || socket.id).emit('game:state', {
+              gameState: playerGameState,
+              phase: result.gameState.phase
+            });
+          });
+        }
+
+        // Si todos confirmaron, cambiar fase y notificar
+        if (result.phaseChanged) {
+          io.to(roomId).emit('game:phaseChanged', {
+            phase: 'clues',
+            message: 'Todos los jugadores han visto sus roles. Comienza la fase de pistas.'
+          });
+
+          console.log(`[Game] Todos los jugadores confirmaron roles en sala ${roomId}. Avanzando a fase de pistas.`);
+        } else {
+          // Notificar al jugador que su confirmación fue recibida
+          socket.emit('game:rolesConfirmed', {
+            message: 'Confirmación recibida. Esperando a otros jugadores...'
+          });
+        }
+      } catch (error) {
+        console.error('[Game] Error al confirmar roles:', error);
+        socket.emit('game:error', {
+          error: 'Error al confirmar roles',
           message: error.message
         });
       }

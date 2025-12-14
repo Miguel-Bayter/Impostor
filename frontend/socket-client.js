@@ -474,6 +474,40 @@ class SocketClient {
   }
 
   /**
+   * Confirmar que el jugador ha visto su rol (deprecated - ya no se usa)
+   */
+  confirmRolesViewed() {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('No conectado al servidor');
+    }
+
+    if (!this.currentRoomId) {
+      throw new Error('No estás en ninguna sala');
+    }
+
+    this.socket.emit('game:confirmRoles', {
+      roomId: this.currentRoomId
+    });
+  }
+
+  /**
+   * Iniciar fase de pistas (solo host)
+   */
+  startCluesPhase() {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('No conectado al servidor');
+    }
+
+    if (!this.currentRoomId) {
+      throw new Error('No estás en ninguna sala');
+    }
+
+    this.socket.emit('game:startCluesPhase', {
+      roomId: this.currentRoomId
+    });
+  }
+
+  /**
    * Enviar pista
    */
   submitClue(clue) {

@@ -194,6 +194,11 @@ function setupUIEventListeners() {
         });
     }
     
+    const continueRolesBtn = document.getElementById('btn-continue-roles');
+    if (continueRolesBtn) {
+        continueRolesBtn.addEventListener('click', handleContinueRoles);
+    }
+    
     const submitVoteBtn = document.getElementById('btn-submit-vote');
     if (submitVoteBtn) {
         submitVoteBtn.addEventListener('click', handleSubmitVote);
@@ -540,6 +545,32 @@ function handleStartGame() {
     }
 }
 
+/**
+ * Maneja iniciar la fase de pistas (solo host)
+ */
+function handleContinueRoles() {
+    hideError();
+    
+    // Verificar que el usuario es el host
+    const isHost = currentRoom && currentRoom.hostId === currentUser.id;
+    if (!isHost) {
+        showError('Solo el host puede iniciar la partida');
+        return;
+    }
+    
+    try {
+        socketClient.startCluesPhase();
+        // Deshabilitar el botón para evitar múltiples clics
+        const continueRolesBtn = document.getElementById('btn-continue-roles');
+        if (continueRolesBtn) {
+            continueRolesBtn.disabled = true;
+            continueRolesBtn.textContent = 'Iniciando partida...';
+        }
+    } catch (error) {
+        showError(error.message || 'Error al iniciar la partida');
+    }
+}
+
 // ============================================
 // JUEGO
 // ============================================
@@ -605,6 +636,25 @@ function displayRoles(gameState) {
     if (!container) return;
     
     container.innerHTML = '';
+    
+    // Verificar si el usuario actual es el host
+    const isHost = currentRoom && currentRoom.hostId === currentUser.id;
+    
+    // Configurar botón según si es host o no
+    const continueRolesBtn = document.getElementById('btn-continue-roles');
+    if (continueRolesBtn) {
+        if (isHost) {
+            // Host puede iniciar la partida
+            continueRolesBtn.disabled = false;
+            continueRolesBtn.textContent = 'Iniciar Partida';
+            continueRolesBtn.style.display = 'block';
+        } else {
+            // Otros jugadores solo esperan
+            continueRolesBtn.disabled = true;
+            continueRolesBtn.textContent = 'Esperando a que el host inicie la partida...';
+            continueRolesBtn.style.display = 'block';
+        }
+    }
     
     // Encontrar el jugador actual
     const currentPlayer = gameState.players.find(p => p.userId === currentUser.id);
