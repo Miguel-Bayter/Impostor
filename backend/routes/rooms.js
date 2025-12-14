@@ -14,6 +14,7 @@ const express = require('express');
 const router = express.Router();
 const Room = require('../models/Room');
 const { authenticateToken } = require('../middleware/auth');
+const { sanitizeRoomName } = require('../utils/sanitizer');
 
 /**
  * POST /api/rooms/create
@@ -34,9 +35,21 @@ router.post('/create', authenticateToken, (req, res) => {
     const userId = req.user.id;
     const username = req.user.username;
 
+    // Sanitizar y validar nombre de sala (si se envía)
+    let sanitizedName = undefined;
+    if (typeof name === 'string') {
+      sanitizedName = sanitizeRoomName(name);
+      if (!sanitizedName || sanitizedName.trim().length === 0) {
+        return res.status(400).json({
+          error: 'Nombre de sala inválido',
+          message: 'El nombre de la sala no puede estar vacío ni contener caracteres inválidos'
+        });
+      }
+    }
+
     // Crear sala
     const room = Room.create(userId, username, {
-      name,
+      name: sanitizedName,
       minPlayers,
       maxPlayers,
       numImpostors

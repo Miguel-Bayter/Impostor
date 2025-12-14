@@ -71,6 +71,16 @@ const RATE_LIMIT_CONFIGS = {
   'room:state': {
     maxRequests: 20,
     windowMs: 60 * 1000 // 20 requests por minuto
+  },
+
+  // Eventos de autenticación
+  'auth:register': {
+    maxRequests: 5,
+    windowMs: 15 * 60 * 1000
+  },
+  'auth:login': {
+    maxRequests: 5,
+    windowMs: 15 * 60 * 1000
   }
 };
 

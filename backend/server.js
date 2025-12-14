@@ -27,7 +27,7 @@ const server = http.createServer(app);
 // Configuración de Socket.io con CORS dinámico
 const socketIoOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:5500', 'http://localhost:3000', '*'];
+  : ['http://127.0.0.1:5500', 'http://localhost:5500'];
 
 const io = socketIo(server, {
   cors: {
@@ -38,9 +38,7 @@ const io = socketIo(server, {
 });
 
 // Configuración de CORS para desarrollo y producción
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://127.0.0.1:5500', 'http://localhost:3000'];
+const allowedOrigins = socketIoOrigins;
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -76,6 +74,7 @@ app.use(express.urlencoded({ extended: true }));
 const authNamespace = io.of('/auth');
 const User = require('./models/User');
 const { generateToken } = require('./utils/jwt');
+const { checkRateLimit } = require('./utils/socketRateLimiter');
 
 // Handlers de autenticación por WebSocket
 authNamespace.on('connection', (socket) => {
@@ -93,6 +92,14 @@ authNamespace.on('connection', (socket) => {
    * }
    */
   socket.on('auth:register', async (data) => {
+    const rateKey = socket.userId || socket.handshake?.address || socket.id;
+    const rateLimitResult = checkRateLimit(rateKey, 'auth:register');
+    if (!rateLimitResult.allowed) {
+      return socket.emit('auth:error', {
+        error: 'Demasiados intentos',
+        message: `Has excedido el límite de registro. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`
+      });
+    }
     try {
       const { username, email, password } = data;
 
@@ -143,6 +150,14 @@ authNamespace.on('connection', (socket) => {
    * }
    */
   socket.on('auth:login', async (data) => {
+    const rateKey = socket.userId || socket.handshake?.address || socket.id;
+    const rateLimitResult = checkRateLimit(rateKey, 'auth:login');
+    if (!rateLimitResult.allowed) {
+      return socket.emit('auth:error', {
+        error: 'Demasiados intentos',
+        message: `Has excedido el límite de inicio de sesión. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`
+      });
+    }
     try {
       const { email, password } = data;
 
