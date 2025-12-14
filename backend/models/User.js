@@ -1,7 +1,7 @@
 /**
  * Modelo de Usuario - Almacenamiento en Memoria
  * Fase 2: Autenticación
- * 
+ *
  * NOTA: Este modelo usa almacenamiento en memoria (Map) para desarrollo.
  * En producción, migrar a base de datos (MongoDB/PostgreSQL).
  */
@@ -46,7 +46,7 @@ class User {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -104,7 +104,7 @@ class User {
       username: normalizedUsername,
       email: normalizedEmail,
       passwordHash: passwordHash,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     // Guardar en memoria
@@ -129,7 +129,7 @@ class User {
     }
 
     const userId = this.usersByEmail.get(sanitizedEmail);
-    
+
     if (!userId) {
       return null;
     }
@@ -144,7 +144,7 @@ class User {
    */
   findById(userId) {
     const user = this.usersById.get(userId);
-    
+
     if (!user) {
       return null;
     }
@@ -169,7 +169,7 @@ class User {
    * @returns {Array} Lista de usuarios sin passwordHash
    */
   getAll() {
-    return Array.from(this.usersById.values()).map(user => {
+    return Array.from(this.usersById.values()).map((user) => {
       const { passwordHash: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
@@ -186,4 +186,3 @@ class User {
 
 // Exportar instancia singleton
 module.exports = new User();
-

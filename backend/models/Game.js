@@ -1,12 +1,20 @@
 /**
  * Modelo de Juego - Almacenamiento en Memoria
  * Fase 4: Lógica del Juego
- * 
+ *
  * NOTA: Este modelo usa almacenamiento en memoria (Map) para desarrollo.
  * En producción, migrar a base de datos (MongoDB/PostgreSQL).
  */
 
-const { getRandomWord, validateClue, checkWordGuess, validateVote, calculateVotingResults, checkVictoryConditions, validateGameRules } = require('../utils/gameLogic');
+const {
+  getRandomWord,
+  validateClue,
+  checkWordGuess,
+  validateVote,
+  calculateVotingResults,
+  checkVictoryConditions,
+  validateGameRules,
+} = require('../utils/gameLogic');
 
 class Game {
   constructor() {
@@ -38,7 +46,7 @@ class Game {
 
     // Crear array de índices para seleccionar impostores
     const indices = Array.from({ length: players.length }, (_, i) => i);
-    
+
     // Seleccionar índices aleatorios para impostores
     const impostorIndices = [];
     for (let i = 0; i < numImpostors; i++) {
@@ -51,7 +59,7 @@ class Game {
       userId: player.userId,
       username: player.username,
       isImpostor: impostorIndices.includes(index),
-      isEliminated: false
+      isEliminated: false,
     }));
 
     // Crear estado del juego
@@ -68,7 +76,7 @@ class Game {
       winner: null, // 'citizens' | 'impostor' | null
       rolesConfirmed: new Set(), // Set de playerIds que han confirmado ver sus roles
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     // Guardar en memoria
@@ -85,7 +93,7 @@ class Game {
    */
   getGameState(roomId, userId = null) {
     const gameState = this.gamesByRoomId.get(roomId);
-    
+
     if (!gameState) {
       return null;
     }
@@ -93,30 +101,30 @@ class Game {
     // Crear copia del estado
     const sanitized = {
       roomId: gameState.roomId,
-      players: gameState.players.map(p => ({
+      players: gameState.players.map((p) => ({
         userId: p.userId,
         username: p.username,
         isImpostor: p.isImpostor,
-        isEliminated: p.isEliminated
+        isEliminated: p.isEliminated,
       })),
       currentRound: gameState.currentRound,
       currentTurn: gameState.currentTurn,
-      clues: gameState.clues.map(c => ({
+      clues: gameState.clues.map((c) => ({
         playerId: c.playerId,
         playerName: c.playerName,
-        clue: c.clue
+        clue: c.clue,
       })),
       votes: { ...gameState.votes },
       currentVotingTurn: gameState.currentVotingTurn,
       phase: gameState.phase,
       winner: gameState.winner,
       createdAt: gameState.createdAt,
-      updatedAt: gameState.updatedAt
+      updatedAt: gameState.updatedAt,
     };
 
     // Si se proporciona userId, incluir palabra secreta solo si el jugador no es impostor
     if (userId) {
-      const player = gameState.players.find(p => p.userId === userId);
+      const player = gameState.players.find((p) => p.userId === userId);
       if (player && !player.isImpostor) {
         sanitized.secretWord = gameState.secretWord;
       }
@@ -146,7 +154,7 @@ class Game {
    */
   submitClue(roomId, playerId, clue) {
     const gameState = this.gamesByRoomId.get(roomId);
-    
+
     if (!gameState) {
       throw new Error('Juego no encontrado');
     }
@@ -157,7 +165,7 @@ class Game {
     }
 
     // Obtener jugadores activos
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
+    const activePlayers = gameState.players.filter((p) => !p.isEliminated);
 
     // Verificar que el jugador tiene el turno
     if (gameState.currentTurn >= activePlayers.length) {
@@ -181,16 +189,16 @@ class Game {
       // El jugador adivinó la palabra secreta - terminar ronda
       gameState.phase = 'results';
       gameState.updatedAt = new Date().toISOString();
-      
+
       return {
         success: true,
         wordGuessed: true,
         guessedBy: {
           userId: playerId,
           username: currentPlayer.username,
-          isImpostor: currentPlayer.isImpostor
+          isImpostor: currentPlayer.isImpostor,
         },
-        gameState: this.getGameState(roomId, playerId)
+        gameState: this.getGameState(roomId, playerId),
       };
     }
 
@@ -198,7 +206,7 @@ class Game {
     gameState.clues.push({
       playerId: playerId,
       playerName: currentPlayer.username,
-      clue: clue.trim()
+      clue: clue.trim(),
     });
 
     // Avanzar turno
@@ -215,7 +223,7 @@ class Game {
     return {
       success: true,
       wordGuessed: false,
-      gameState: this.getGameState(roomId, playerId)
+      gameState: this.getGameState(roomId, playerId),
     };
   }
 
@@ -228,7 +236,7 @@ class Game {
    */
   submitVote(roomId, voterId, votedPlayerId) {
     const gameState = this.gamesByRoomId.get(roomId);
-    
+
     if (!gameState) {
       throw new Error('Juego no encontrado');
     }
@@ -239,7 +247,7 @@ class Game {
     }
 
     // Obtener jugadores activos
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
+    const activePlayers = gameState.players.filter((p) => !p.isEliminated);
 
     // Verificar que el jugador tiene el turno de votación
     if (gameState.currentVotingTurn >= activePlayers.length) {
@@ -266,19 +274,19 @@ class Game {
 
     // Verificar si todos han votado
     const allVoted = gameState.currentVotingTurn >= activePlayers.length;
-    
+
     if (allVoted) {
       // Calcular resultados
       const results = calculateVotingResults(gameState.votes, gameState.players);
-      const eliminatedPlayer = gameState.players.find(p => p.userId === results.mostVotedId);
-      
+      const eliminatedPlayer = gameState.players.find((p) => p.userId === results.mostVotedId);
+
       if (eliminatedPlayer) {
         eliminatedPlayer.isEliminated = true;
       }
 
       // Verificar condiciones de victoria
       const victoryCheck = checkVictoryConditions(gameState.players);
-      
+
       if (victoryCheck.winner) {
         // Hay un ganador
         gameState.phase = 'victory';
@@ -297,18 +305,18 @@ class Game {
           eliminatedPlayer: {
             userId: eliminatedPlayer.userId,
             username: eliminatedPlayer.username,
-            isImpostor: eliminatedPlayer.isImpostor
-          }
+            isImpostor: eliminatedPlayer.isImpostor,
+          },
         },
         victoryCheck: victoryCheck,
-        gameState: this.getGameState(roomId, voterId)
+        gameState: this.getGameState(roomId, voterId),
       };
     }
 
     return {
       success: true,
       votingComplete: false,
-      gameState: this.getGameState(roomId, voterId)
+      gameState: this.getGameState(roomId, voterId),
     };
   }
 
@@ -319,7 +327,7 @@ class Game {
    */
   changePhase(roomId, newPhase) {
     const gameState = this.gamesByRoomId.get(roomId);
-    
+
     if (!gameState) {
       throw new Error('Juego no encontrado');
     }
@@ -341,7 +349,7 @@ class Game {
    */
   confirmRolesViewed(roomId, playerId) {
     const gameState = this.gamesByRoomId.get(roomId);
-    
+
     if (!gameState) {
       throw new Error('Juego no encontrado');
     }
@@ -352,7 +360,7 @@ class Game {
     }
 
     // Verificar que el jugador está en el juego
-    const player = gameState.players.find(p => p.userId === playerId);
+    const player = gameState.players.find((p) => p.userId === playerId);
     if (!player) {
       throw new Error('Jugador no encontrado en el juego');
     }
@@ -363,7 +371,7 @@ class Game {
       return {
         success: true,
         phaseChanged: false,
-        gameState: this.getGameState(roomId, playerId)
+        gameState: this.getGameState(roomId, playerId),
       };
     }
 
@@ -372,8 +380,8 @@ class Game {
     gameState.updatedAt = new Date().toISOString();
 
     // Verificar si todos los jugadores activos han confirmado
-    const activePlayers = gameState.players.filter(p => !p.isEliminated);
-    const allConfirmed = activePlayers.every(p => gameState.rolesConfirmed.has(p.userId));
+    const activePlayers = gameState.players.filter((p) => !p.isEliminated);
+    const allConfirmed = activePlayers.every((p) => gameState.rolesConfirmed.has(p.userId));
 
     let phaseChanged = false;
     if (allConfirmed) {
@@ -386,7 +394,7 @@ class Game {
     return {
       success: true,
       phaseChanged: phaseChanged,
-      gameState: this.getGameState(roomId, playerId)
+      gameState: this.getGameState(roomId, playerId),
     };
   }
 
@@ -396,7 +404,7 @@ class Game {
    */
   startNewRound(roomId) {
     const gameState = this.gamesByRoomId.get(roomId);
-    
+
     if (!gameState) {
       throw new Error('Juego no encontrado');
     }

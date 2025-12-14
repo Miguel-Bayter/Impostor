@@ -12,6 +12,7 @@ Este directorio contiene ejemplos de cómo usar el sistema de autenticación por
 ### Opción 1: Ejemplo HTML (Más fácil)
 
 1. Asegúrate de que el servidor esté corriendo:
+
 ```bash
 cd backend
 npm install
@@ -36,26 +37,30 @@ Incluye el código de `websocket-auth-example.js` en tu proyecto y usa las funci
 ### Namespace `/auth` (Sin autenticación requerida)
 
 #### `auth:register`
+
 Registra un nuevo usuario.
 
 **Enviar:**
+
 ```javascript
 socket.emit('auth:register', {
   username: 'nombre_usuario',
   email: 'usuario@ejemplo.com',
-  password: 'contraseña123'
+  password: 'contraseña123',
 });
 ```
 
 **Recibir éxito:**
+
 ```javascript
 socket.on('auth:register:success', (data) => {
   console.log(data.token); // Token JWT
-  console.log(data.user);  // Información del usuario
+  console.log(data.user); // Información del usuario
 });
 ```
 
 **Recibir error:**
+
 ```javascript
 socket.on('auth:error', (error) => {
   console.error(error.message);
@@ -63,25 +68,29 @@ socket.on('auth:error', (error) => {
 ```
 
 #### `auth:login`
+
 Inicia sesión con un usuario existente.
 
 **Enviar:**
+
 ```javascript
 socket.emit('auth:login', {
   email: 'usuario@ejemplo.com',
-  password: 'contraseña123'
+  password: 'contraseña123',
 });
 ```
 
 **Recibir éxito:**
+
 ```javascript
 socket.on('auth:login:success', (data) => {
   console.log(data.token); // Token JWT
-  console.log(data.user);  // Información del usuario
+  console.log(data.user); // Información del usuario
 });
 ```
 
 **Recibir error:**
+
 ```javascript
 socket.on('auth:error', (error) => {
   console.error(error.message);
@@ -95,8 +104,8 @@ Para conectarte al namespace principal, necesitas el token obtenido del registro
 ```javascript
 const gameSocket = io('http://localhost:3000', {
   auth: {
-    token: 'tu_token_jwt_aqui'
-  }
+    token: 'tu_token_jwt_aqui',
+  },
 });
 ```
 
@@ -112,18 +121,18 @@ const authSocket = io('http://localhost:3000/auth');
 authSocket.emit('auth:register', {
   username: 'usuario1',
   email: 'user1@test.com',
-  password: 'pass123'
+  password: 'pass123',
 });
 
 // 3. Recibir token
 authSocket.on('auth:register:success', (data) => {
   const token = data.token;
-  
+
   // 4. Conectar al namespace principal con el token
   const gameSocket = io('http://localhost:3000', {
-    auth: { token: token }
+    auth: { token: token },
   });
-  
+
   // 5. Usar el socket del juego
   gameSocket.on('connect', () => {
     console.log('Conectado al juego!');
@@ -161,12 +170,11 @@ gameSocket.emit('ping');
 
 ## Diferencias con HTTP REST
 
-| Característica | HTTP REST | WebSocket |
-|---------------|-----------|-----------|
-| Conexión | Request/Response | Persistente |
-| Overhead | Mayor | Menor |
-| Tiempo real | No | Sí |
-| Uso | Registro/Login | Registro/Login + Juego |
+| Característica | HTTP REST        | WebSocket              |
+| -------------- | ---------------- | ---------------------- |
+| Conexión       | Request/Response | Persistente            |
+| Overhead       | Mayor            | Menor                  |
+| Tiempo real    | No               | Sí                     |
+| Uso            | Registro/Login   | Registro/Login + Juego |
 
 Ambos métodos están disponibles. Elige el que mejor se adapte a tu caso de uso.
-

@@ -1,7 +1,7 @@
 /**
  * Middleware de Autenticación JWT
  * Fase 2: Autenticación
- * 
+ *
  * Proporciona middleware para proteger rutas HTTP y conexiones WebSocket
  */
 
@@ -21,21 +21,21 @@ function authenticateToken(req, res, next) {
   if (!token) {
     return res.status(401).json({
       error: 'Token de autenticación requerido',
-      message: 'Incluye el token en el header: Authorization: Bearer <token>'
+      message: 'Incluye el token en el header: Authorization: Bearer <token>',
     });
   }
 
   try {
     // Verificar token
     const decoded = verifyToken(token);
-    
+
     // Buscar usuario en la base de datos
     const user = User.findById(decoded.userId);
-    
+
     if (!user) {
       return res.status(401).json({
         error: 'Usuario no encontrado',
-        message: 'El token es válido pero el usuario no existe'
+        message: 'El token es válido pero el usuario no existe',
       });
     }
 
@@ -43,14 +43,14 @@ function authenticateToken(req, res, next) {
     req.user = {
       id: user.id,
       username: user.username,
-      email: user.email
+      email: user.email,
     };
 
     next();
   } catch (error) {
     return res.status(401).json({
       error: 'Token inválido',
-      message: error.message
+      message: error.message,
     });
   }
 }
@@ -59,7 +59,7 @@ function authenticateToken(req, res, next) {
  * Middleware para autenticar conexiones WebSocket
  * Valida el token JWT enviado en el handshake
  * Adjunta el userId a socket.userId
- * 
+ *
  * @param {Object} socket - Socket de Socket.io
  * @param {Function} next - Función next de Socket.io
  */
@@ -67,9 +67,9 @@ function authenticateSocket(socket, next) {
   // El token puede venir en:
   // 1. socket.handshake.auth.token (recomendado)
   // 2. socket.handshake.headers.authorization (como fallback)
-  
+
   let token = socket.handshake.auth?.token;
-  
+
   // Fallback: intentar extraer del header Authorization
   if (!token) {
     const authHeader = socket.handshake.headers?.authorization;
@@ -83,10 +83,10 @@ function authenticateSocket(socket, next) {
   try {
     // Verificar token
     const decoded = verifyToken(token);
-    
+
     // Verificar que el usuario existe
     const user = User.findById(decoded.userId);
-    
+
     if (!user) {
       return next(new Error('Usuario no encontrado'));
     }
@@ -97,7 +97,7 @@ function authenticateSocket(socket, next) {
     socket.user = {
       id: user.id,
       username: user.username,
-      email: user.email
+      email: user.email,
     };
 
     next();
@@ -123,12 +123,12 @@ function optionalAuth(req, res, next) {
   try {
     const decoded = verifyToken(token);
     const user = User.findById(decoded.userId);
-    
+
     if (user) {
       req.user = {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
       };
     } else {
       req.user = null;
@@ -143,6 +143,5 @@ function optionalAuth(req, res, next) {
 module.exports = {
   authenticateToken,
   authenticateSocket,
-  optionalAuth
+  optionalAuth,
 };
-

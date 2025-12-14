@@ -1,8 +1,8 @@
 /**
  * Script de Pruebas de Seguridad
- * 
+ *
  * Ejecutar: node test-security.js
- * 
+ *
  * Requisitos:
  * - Servidor corriendo en http://localhost:3000
  * - Tener un token JWT válido (puedes obtenerlo registrando un usuario)
@@ -24,7 +24,7 @@ const colors = {
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function log(message, color = 'reset') {
@@ -57,7 +57,7 @@ async function testXSSSanitization() {
 
   return new Promise((resolve) => {
     const socket = io(SERVER_URL, {
-      auth: { token: authToken }
+      auth: { token: authToken },
     });
 
     socket.on('connect', () => {
@@ -67,7 +67,7 @@ async function testXSSSanitization() {
       log('\n1.1 Probando script injection...', 'yellow');
       socket.emit('game:submitClue', {
         roomId: roomId,
-        clue: '<script>alert("XSS")</script>'
+        clue: '<script>alert("XSS")</script>',
       });
 
       // Test 1.2: HTML tags maliciosos
@@ -75,7 +75,7 @@ async function testXSSSanitization() {
         log('\n1.2 Probando HTML tags maliciosos...', 'yellow');
         socket.emit('game:submitClue', {
           roomId: roomId,
-          clue: '<img src=x onerror=alert(1)>'
+          clue: '<img src=x onerror=alert(1)>',
         });
       }, 1000);
 
@@ -84,7 +84,7 @@ async function testXSSSanitization() {
         log('\n1.3 Probando caracteres especiales válidos...', 'yellow');
         socket.emit('game:submitClue', {
           roomId: roomId,
-          clue: 'café mañana'
+          clue: 'café mañana',
         });
       }, 2000);
     });
@@ -118,12 +118,12 @@ async function testRateLimiting() {
 
   return new Promise((resolve) => {
     const socket = io(SERVER_URL, {
-      auth: { token: authToken }
+      auth: { token: authToken },
     });
 
     socket.on('connect', () => {
       log('Enviando múltiples pistas rápidamente (límite: 1 por 2 segundos)...', 'yellow');
-      
+
       let requestCount = 0;
       let successCount = 0;
       let rateLimitCount = 0;
@@ -132,7 +132,7 @@ async function testRateLimiting() {
         requestCount++;
         socket.emit('game:submitClue', {
           roomId: roomId,
-          clue: `pista-rapida-${requestCount}`
+          clue: `pista-rapida-${requestCount}`,
         });
       };
 
@@ -182,16 +182,16 @@ async function testTurnValidation() {
 
   return new Promise((resolve) => {
     const socket = io(SERVER_URL, {
-      auth: { token: authToken }
+      auth: { token: authToken },
     });
 
     socket.on('connect', () => {
       log('Intentando enviar pista fuera de turno...', 'yellow');
-      
+
       // Intentar enviar pista (probablemente fuera de turno)
       socket.emit('game:submitClue', {
         roomId: roomId,
-        clue: 'pista-fuera-de-turno'
+        clue: 'pista-fuera-de-turno',
       });
     });
 
@@ -224,17 +224,17 @@ async function testUsernameSanitization() {
     '<script>alert(1)</script>',
     'José_María-123',
     'user<script>test</script>name',
-    'a'.repeat(100) // Muy largo
+    'a'.repeat(100), // Muy largo
   ];
 
   for (const testUsername of testUsernames) {
     try {
       log(`\nProbando username: "${testUsername.substring(0, 30)}..."`, 'yellow');
-      
+
       const response = await axios.post(`${SERVER_URL}/api/auth/register`, {
         username: testUsername,
         email: `test${Date.now()}@example.com`,
-        password: 'password123'
+        password: 'password123',
       });
 
       logSuccess(`Username aceptado: "${response.data.user.username}"`);
@@ -265,12 +265,16 @@ async function testAPIRateLimiting() {
 
   for (let i = 1; i <= 6; i++) {
     try {
-      const response = await axios.post(`${SERVER_URL}/api/auth/login`, {
-        email: 'wrong@example.com',
-        password: 'wrongpassword'
-      }, {
-        validateStatus: () => true // Aceptar todos los códigos de estado
-      });
+      const response = await axios.post(
+        `${SERVER_URL}/api/auth/login`,
+        {
+          email: 'wrong@example.com',
+          password: 'wrongpassword',
+        },
+        {
+          validateStatus: () => true, // Aceptar todos los códigos de estado
+        },
+      );
 
       if (response.status === 429) {
         rateLimitCount++;
@@ -290,10 +294,13 @@ async function testAPIRateLimiting() {
     }
 
     // Pequeña pausa entre intentos
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
-  log(`\nResultados: ${successCount} rechazados, ${rateLimitCount} bloqueados por rate limit`, 'cyan');
+  log(
+    `\nResultados: ${successCount} rechazados, ${rateLimitCount} bloqueados por rate limit`,
+    'cyan',
+  );
   if (rateLimitCount > 0) {
     logSuccess('✓ Rate limiting en API funcionando');
   } else {
@@ -312,7 +319,7 @@ async function setup() {
     const registerResponse = await axios.post(`${SERVER_URL}/api/auth/register`, {
       username: `testuser${Date.now()}`,
       email: `test${Date.now()}@example.com`,
-      password: 'testpassword123'
+      password: 'testpassword123',
     });
 
     authToken = registerResponse.data.token;
@@ -371,8 +378,10 @@ async function runTests() {
     log('\n' + '='.repeat(60), 'cyan');
     log('✅ PRUEBAS COMPLETADAS', 'green');
     log('='.repeat(60) + '\n', 'cyan');
-    log('Revisa los resultados arriba para verificar que todas las medidas de seguridad están funcionando.', 'cyan');
-
+    log(
+      'Revisa los resultados arriba para verificar que todas las medidas de seguridad están funcionando.',
+      'cyan',
+    );
   } catch (error) {
     logError(`Error ejecutando tests: ${error.message}`);
     console.error(error);
@@ -399,5 +408,5 @@ module.exports = {
   testRateLimiting,
   testTurnValidation,
   testUsernameSanitization,
-  testAPIRateLimiting
+  testAPIRateLimiting,
 };

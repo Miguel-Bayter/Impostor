@@ -8,7 +8,9 @@ require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET || JWT_SECRET.trim().length === 0) {
-  throw new Error('JWT_SECRET requerido. Configura la variable de entorno JWT_SECRET antes de iniciar el servidor.');
+  throw new Error(
+    'JWT_SECRET requerido. Configura la variable de entorno JWT_SECRET antes de iniciar el servidor.',
+  );
 }
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
@@ -22,11 +24,11 @@ function generateToken(userId, username) {
   const payload = {
     userId: userId,
     username: username,
-    iat: Math.floor(Date.now() / 1000) // Issued at
+    iat: Math.floor(Date.now() / 1000), // Issued at
   };
 
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN
+    expiresIn: JWT_EXPIRES_IN,
   });
 }
 
@@ -72,6 +74,5 @@ function extractTokenFromHeader(authHeader) {
 module.exports = {
   generateToken,
   verifyToken,
-  extractTokenFromHeader
+  extractTokenFromHeader,
 };
-

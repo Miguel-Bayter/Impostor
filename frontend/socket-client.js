@@ -1,7 +1,7 @@
 /**
  * Cliente WebSocket para Juego Impostor Multijugador
  * Fase 5: WebSockets Frontend
- * 
+ *
  * Maneja toda la comunicación en tiempo real con el servidor
  */
 
@@ -17,7 +17,7 @@ class SocketClient {
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
-    
+
     // Callbacks para eventos
     this.callbacks = {
       onConnect: null,
@@ -31,7 +31,7 @@ class SocketClient {
       onVoteSubmitted: null,
       onVotingResults: null,
       onPhaseChanged: null,
-      onWordGuessed: null
+      onWordGuessed: null,
     };
   }
 
@@ -46,7 +46,7 @@ class SocketClient {
     return new Promise((resolve, reject) => {
       try {
         this.authSocket = io(`${this.serverUrl}/auth`, {
-          transports: ['websocket', 'polling']
+          transports: ['websocket', 'polling'],
         });
 
         this.authSocket.on('connect', () => {
@@ -73,7 +73,7 @@ class SocketClient {
     }
 
     this.token = token;
-    
+
     // Guardar token en localStorage
     if (token) {
       localStorage.setItem('impostor_token', token);
@@ -83,20 +83,20 @@ class SocketClient {
       try {
         this.socket = io(this.serverUrl, {
           auth: {
-            token: token
+            token: token,
           },
-          transports: ['websocket', 'polling']
+          transports: ['websocket', 'polling'],
         });
 
         this.socket.on('connect', () => {
           console.log('[SocketClient] Conectado al servidor principal');
           this.reconnectAttempts = 0;
-          
+
           // Si teníamos una sala, reconectarnos
           if (this.currentRoomId) {
             this.joinRoom(this.currentRoomId);
           }
-          
+
           if (this.callbacks.onConnect) {
             this.callbacks.onConnect();
           }
@@ -105,28 +105,31 @@ class SocketClient {
 
         this.socket.on('disconnect', (reason) => {
           console.log('[SocketClient] Desconectado:', reason);
-          
+
           if (this.callbacks.onDisconnect) {
             this.callbacks.onDisconnect(reason);
           }
-          
+
           // Intentar reconexión automática si no fue desconexión manual
           if (reason === 'io server disconnect') {
             // El servidor desconectó, no reconectar automáticamente
             return;
           }
-          
+
           this.attemptReconnect();
         });
 
         this.socket.on('connect_error', (error) => {
           console.error('[SocketClient] Error de conexión:', error);
-          
+
           if (error.message === 'Token inválido' || error.message === 'Token requerido') {
             // Token inválido, limpiar y requerir re-autenticación
             this.clearAuth();
             if (this.callbacks.onError) {
-              this.callbacks.onError({ error: 'Sesión expirada', message: 'Por favor, inicia sesión nuevamente' });
+              this.callbacks.onError({
+                error: 'Sesión expirada',
+                message: 'Por favor, inicia sesión nuevamente',
+              });
             }
             reject(error);
           } else {
@@ -136,7 +139,7 @@ class SocketClient {
 
         // Configurar listeners de eventos
         this.setupEventListeners();
-        
+
         resolve();
       } catch (error) {
         reject(error);
@@ -268,9 +271,9 @@ class SocketClient {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('[SocketClient] Máximo de intentos de reconexión alcanzado');
       if (this.callbacks.onError) {
-        this.callbacks.onError({ 
-          error: 'Conexión perdida', 
-          message: 'No se pudo reconectar al servidor. Por favor, recarga la página.' 
+        this.callbacks.onError({
+          error: 'Conexión perdida',
+          message: 'No se pudo reconectar al servidor. Por favor, recarga la página.',
         });
       }
       return;
@@ -278,9 +281,11 @@ class SocketClient {
 
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
-    
-    console.log(`[SocketClient] Intentando reconectar en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-    
+
+    console.log(
+      `[SocketClient] Intentando reconectar en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+    );
+
     setTimeout(() => {
       if (this.token) {
         this.connectMain(this.token).catch(() => {
@@ -305,11 +310,13 @@ class SocketClient {
         this.userId = data.user.id;
         this.username = data.user.username;
         this.token = data.token;
-        
+
         // Conectar al namespace principal
-        this.connectMain(data.token).then(() => {
-          resolve(data);
-        }).catch(reject);
+        this.connectMain(data.token)
+          .then(() => {
+            resolve(data);
+          })
+          .catch(reject);
       });
 
       this.authSocket.once('auth:error', (error) => {
@@ -333,11 +340,13 @@ class SocketClient {
         this.userId = data.user.id;
         this.username = data.user.username;
         this.token = data.token;
-        
+
         // Conectar al namespace principal
-        this.connectMain(data.token).then(() => {
-          resolve(data);
-        }).catch(reject);
+        this.connectMain(data.token)
+          .then(() => {
+            resolve(data);
+          })
+          .catch(reject);
       });
 
       this.authSocket.once('auth:error', (error) => {
@@ -357,13 +366,13 @@ class SocketClient {
         const response = await fetch(`${this.serverUrl}/api/auth/verify`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ token: storedToken })
+          body: JSON.stringify({ token: storedToken }),
         });
 
         const data = await response.json();
-        
+
         if (data.valid) {
           this.userId = data.user.id;
           this.username = data.user.username;
@@ -486,7 +495,7 @@ class SocketClient {
     }
 
     this.socket.emit('game:confirmRoles', {
-      roomId: this.currentRoomId
+      roomId: this.currentRoomId,
     });
   }
 
@@ -503,7 +512,7 @@ class SocketClient {
     }
 
     this.socket.emit('game:startCluesPhase', {
-      roomId: this.currentRoomId
+      roomId: this.currentRoomId,
     });
   }
 
@@ -521,7 +530,7 @@ class SocketClient {
 
     this.socket.emit('game:submitClue', {
       roomId: this.currentRoomId,
-      clue: clue
+      clue: clue,
     });
   }
 
@@ -539,7 +548,7 @@ class SocketClient {
 
     this.socket.emit('game:submitVote', {
       roomId: this.currentRoomId,
-      votedPlayerId: votedPlayerId
+      votedPlayerId: votedPlayerId,
     });
   }
 
@@ -598,7 +607,7 @@ class SocketClient {
   getCurrentUser() {
     return {
       id: this.userId,
-      username: this.username
+      username: this.username,
     };
   }
 

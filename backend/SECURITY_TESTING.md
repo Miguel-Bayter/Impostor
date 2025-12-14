@@ -5,12 +5,14 @@ Esta guía explica cómo probar los puntos de vulnerabilidad y las medidas de se
 ## Requisitos Previos
 
 1. Instalar dependencias del backend:
+
 ```bash
 cd backend
 npm install
 ```
 
 2. Iniciar el servidor:
+
 ```bash
 npm start
 # o en modo desarrollo:
@@ -34,6 +36,7 @@ npm run test:security
 ```
 
 Este script ejecuta automáticamente:
+
 - ✅ Pruebas de sanitización XSS
 - ✅ Pruebas de rate limiting
 - ✅ Pruebas de validación de turnos
@@ -53,46 +56,53 @@ Para pruebas más detalladas y manuales, continúa leyendo las secciones siguien
 **Objetivo**: Verificar que las pistas con código HTML/JavaScript son escapadas correctamente.
 
 **Prueba 1: Script injection en pista**
+
 ```javascript
 // En la consola del navegador o usando WebSocket directamente
 socket.emit('game:submitClue', {
   roomId: 'tu-room-id',
-  clue: '<script>alert("XSS")</script>'
+  clue: '<script>alert("XSS")</script>',
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - La pista debe ser escapada a: `&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;`
 - No debe ejecutarse ningún JavaScript
 - El servidor debe aceptar la pista pero mostrarla como texto plano
 
 **Prueba 2: HTML tags en pista**
+
 ```javascript
 socket.emit('game:submitClue', {
   roomId: 'tu-room-id',
-  clue: '<img src=x onerror=alert(1)>'
+  clue: '<img src=x onerror=alert(1)>',
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe ser escapado a: `&lt;img src=x onerror=alert(1)&gt;`
 - No debe renderizar como HTML
 
 **Prueba 3: Pista con caracteres especiales válidos**
+
 ```javascript
 socket.emit('game:submitClue', {
   roomId: 'tu-room-id',
-  clue: 'café mañana'
+  clue: 'café mañana',
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe aceptar caracteres especiales (acentos) sin problemas
 - Debe preservar los caracteres especiales válidos
 
 ### 1.2 Prueba de XSS en Username
 
 **Prueba: Username con código malicioso**
+
 ```bash
 # Usando curl para registro
 curl -X POST http://localhost:3000/api/auth/register \
@@ -104,11 +114,13 @@ curl -X POST http://localhost:3000/api/auth/register \
   }'
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - El username debe ser escapado o rechazado
 - Si se acepta, debe mostrarse como texto plano en la UI
 
 **Prueba: Username con caracteres especiales válidos**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -119,12 +131,14 @@ curl -X POST http://localhost:3000/api/auth/register \
   }'
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe aceptar caracteres especiales válidos (acentos, guiones, guiones bajos)
 
 ### 1.3 Prueba de Email Injection
 
 **Prueba: Email con caracteres maliciosos**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -135,7 +149,8 @@ curl -X POST http://localhost:3000/api/auth/register \
   }'
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar el email por formato inválido
 - No debe aceptar emails con código HTML/JavaScript
 
@@ -146,6 +161,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ### 2.1 Rate Limiting en Autenticación
 
 **Prueba: Múltiples intentos de login fallidos**
+
 ```bash
 # Ejecutar 6 veces seguidas (límite es 5 por 15 minutos)
 for i in {1..6}; do
@@ -159,12 +175,14 @@ for i in {1..6}; do
 done
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Los primeros 5 intentos deben fallar con "Credenciales inválidas"
 - El 6to intento debe retornar error 429 "Demasiados intentos"
 - Debe incluir headers `RateLimit-*` con información del límite
 
 **Verificar headers de rate limit:**
+
 ```bash
 curl -i -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -175,6 +193,7 @@ curl -i -X POST http://localhost:3000/api/auth/login \
 ```
 
 Buscar headers como:
+
 - `RateLimit-Limit`: 5
 - `RateLimit-Remaining`: 4
 - `RateLimit-Reset`: timestamp
@@ -182,10 +201,11 @@ Buscar headers como:
 ### 2.2 Rate Limiting en WebSockets (Pistas)
 
 **Prueba: Enviar múltiples pistas rápidamente**
+
 ```javascript
 // En consola del navegador
 const socket = io('http://localhost:3000', {
-  auth: { token: 'tu-token-jwt' }
+  auth: { token: 'tu-token-jwt' },
 });
 
 socket.on('connect', () => {
@@ -201,7 +221,8 @@ socket.on('rateLimitExceeded', (data) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Solo la primera pista debe ser aceptada
 - Las siguientes deben retornar evento `rateLimitExceeded` o `game:error`
 - Debe incluir `retryAfter` en segundos
@@ -209,6 +230,7 @@ socket.on('rateLimitExceeded', (data) => {
 ### 2.3 Rate Limiting en Salas
 
 **Prueba: Múltiples uniones a salas**
+
 ```javascript
 // Intentar unirse a 6 salas en menos de 1 minuto (límite es 5 por minuto)
 for (let i = 0; i < 6; i++) {
@@ -216,7 +238,8 @@ for (let i = 0; i < 6; i++) {
 }
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Las primeras 5 uniones deben funcionar
 - La 6ta debe retornar error de rate limit
 
@@ -227,16 +250,17 @@ for (let i = 0; i < 6; i++) {
 ### 3.1 Intentar Enviar Pista Fuera de Turno
 
 **Prueba: Enviar pista cuando no es tu turno**
+
 ```javascript
 // Conectarse como jugador 2
 const socket2 = io('http://localhost:3000', {
-  auth: { token: 'token-jugador-2' }
+  auth: { token: 'token-jugador-2' },
 });
 
 // Intentar enviar pista cuando es el turno del jugador 1
 socket2.emit('game:submitClue', {
   roomId: 'room1',
-  clue: 'mi-pista'
+  clue: 'mi-pista',
 });
 
 socket2.on('game:error', (error) => {
@@ -245,18 +269,20 @@ socket2.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe retornar error: "No es tu turno"
 - El servidor debe validar que el jugador tiene el turno antes de procesar
 
 ### 3.2 Intentar Votar Fuera de Turno
 
 **Prueba: Votar cuando no es tu turno**
+
 ```javascript
 // Intentar votar cuando es el turno de otro jugador
 socket2.emit('game:submitVote', {
   roomId: 'room1',
-  votedPlayerId: 'player-id-1'
+  votedPlayerId: 'player-id-1',
 });
 
 socket2.on('game:error', (error) => {
@@ -264,7 +290,8 @@ socket2.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar el voto con error de turno
 
 ---
@@ -274,11 +301,12 @@ socket2.on('game:error', (error) => {
 ### 4.1 Intentar Votar Durante Fase de Pistas
 
 **Prueba: Votar cuando el juego está en fase de pistas**
+
 ```javascript
 // Cuando el juego está en fase 'clues', intentar votar
 socket.emit('game:submitVote', {
   roomId: 'room1',
-  votedPlayerId: 'player-id'
+  votedPlayerId: 'player-id',
 });
 
 socket.on('game:error', (error) => {
@@ -286,17 +314,19 @@ socket.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar el voto con error de fase
 
 ### 4.2 Intentar Enviar Pista Durante Fase de Votación
 
 **Prueba: Enviar pista cuando el juego está en fase de votación**
+
 ```javascript
 // Cuando el juego está en fase 'voting', intentar enviar pista
 socket.emit('game:submitClue', {
   roomId: 'room1',
-  clue: 'mi-pista'
+  clue: 'mi-pista',
 });
 
 socket.on('game:error', (error) => {
@@ -304,7 +334,8 @@ socket.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar la pista con error de fase
 
 ---
@@ -314,6 +345,7 @@ socket.on('game:error', (error) => {
 ### 5.1 Acceso sin Token
 
 **Prueba: Intentar conectar WebSocket sin token**
+
 ```javascript
 const socket = io('http://localhost:3000');
 // Sin auth token
@@ -324,16 +356,18 @@ socket.on('connect_error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - La conexión debe ser rechazada
 - Debe retornar error de autenticación
 
 ### 5.2 Token Inválido
 
 **Prueba: Conectar con token inválido**
+
 ```javascript
 const socket = io('http://localhost:3000', {
-  auth: { token: 'token-invalido-123' }
+  auth: { token: 'token-invalido-123' },
 });
 
 socket.on('connect_error', (error) => {
@@ -341,20 +375,24 @@ socket.on('connect_error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar la conexión
 
 ### 5.3 Acceso a Rutas Protegidas sin Token
 
 **Prueba: Acceder a /api/auth/me sin token**
+
 ```bash
 curl http://localhost:3000/api/auth/me
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe retornar 401 Unauthorized
 
 **Prueba: Acceder con token válido**
+
 ```bash
 # Primero obtener token
 TOKEN=$(curl -X POST http://localhost:3000/api/auth/login \
@@ -367,7 +405,8 @@ curl http://localhost:3000/api/auth/me \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe retornar información del usuario
 
 ---
@@ -377,6 +416,7 @@ curl http://localhost:3000/api/auth/me \
 ### 6.1 Intentar Enviar Pista Duplicada
 
 **Prueba: Enviar la misma pista dos veces**
+
 ```javascript
 socket.emit('game:submitClue', { roomId: 'room1', clue: 'palabra' });
 // Esperar confirmación
@@ -387,18 +427,20 @@ socket.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - La segunda pista debe ser rechazada
 - Debe validar contra todas las pistas existentes (case-insensitive)
 
 ### 6.2 Intentar Usar la Palabra Secreta como Pista
 
 **Prueba: Si conoces la palabra secreta, intentar usarla**
+
 ```javascript
 // Si eres ciudadano y conoces la palabra secreta
 socket.emit('game:submitClue', {
   roomId: 'room1',
-  clue: 'palabra-secreta' // La palabra secreta real
+  clue: 'palabra-secreta', // La palabra secreta real
 });
 
 socket.on('game:error', (error) => {
@@ -406,17 +448,19 @@ socket.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar la pista
 - El servidor debe validar contra la palabra secreta
 
 ### 6.3 Intentar Votar por Sí Mismo
 
 **Prueba: Votar por tu propio userId**
+
 ```javascript
 socket.emit('game:submitVote', {
   roomId: 'room1',
-  votedPlayerId: socket.userId // Tu propio ID
+  votedPlayerId: socket.userId, // Tu propio ID
 });
 
 socket.on('game:error', (error) => {
@@ -424,12 +468,14 @@ socket.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar el voto
 
 ### 6.4 Intentar Iniciar Juego sin Ser Host
 
 **Prueba: Jugador no-host intenta iniciar juego**
+
 ```javascript
 // Conectarse como jugador que no es el host
 socket.emit('game:start', { roomId: 'room1' });
@@ -439,7 +485,8 @@ socket.on('game:error', (error) => {
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe rechazar la acción
 - Solo el host (creador de la sala) puede iniciar
 
@@ -450,21 +497,24 @@ socket.on('game:error', (error) => {
 ### 7.1 Pista Demasiado Larga
 
 **Prueba: Enviar pista de más de 50 caracteres**
+
 ```javascript
 const longClue = 'a'.repeat(100); // 100 caracteres
 socket.emit('game:submitClue', {
   roomId: 'room1',
-  clue: longClue
+  clue: longClue,
 });
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - La pista debe ser truncada a 50 caracteres
 - O debe ser rechazada si la validación es estricta
 
 ### 7.2 Username Demasiado Largo
 
 **Prueba: Registrar usuario con nombre muy largo**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -475,7 +525,8 @@ curl -X POST http://localhost:3000/api/auth/register \
   }"
 ```
 
-**Resultado esperado**: 
+**Resultado esperado**:
+
 - Debe truncar o rechazar el username
 - Límite es 30 caracteres
 
@@ -495,13 +546,13 @@ async function testSecurity() {
   // 1. Prueba de sanitización XSS
   console.log('1. Probando sanitización XSS...');
   const socket = io('http://localhost:3000', {
-    auth: { token: 'tu-token' }
+    auth: { token: 'tu-token' },
   });
 
   socket.on('connect', () => {
     socket.emit('game:submitClue', {
       roomId: 'test-room',
-      clue: '<script>alert("XSS")</script>'
+      clue: '<script>alert("XSS")</script>',
     });
   });
 
@@ -514,7 +565,7 @@ async function testSecurity() {
   for (let i = 0; i < 3; i++) {
     socket.emit('game:submitClue', {
       roomId: 'test-room',
-      clue: `pista${i}`
+      clue: `pista${i}`,
     });
   }
 
@@ -550,7 +601,9 @@ Usa este checklist para verificar que todas las medidas están funcionando:
 ## 10. Herramientas Adicionales
 
 ### OWASP ZAP (Zed Attack Proxy)
+
 Para pruebas más avanzadas de seguridad:
+
 ```bash
 # Instalar OWASP ZAP
 # https://www.zaproxy.org/download/
@@ -560,6 +613,7 @@ zap-cli quick-scan --self-contained http://localhost:3000
 ```
 
 ### Burp Suite
+
 Para análisis más profundo de vulnerabilidades web.
 
 ---
@@ -576,6 +630,7 @@ Para análisis más profundo de vulnerabilidades web.
 ## Contacto y Reporte de Vulnerabilidades
 
 Si encuentras una vulnerabilidad real, por favor:
+
 1. No la publiques públicamente
 2. Reporta al equipo de desarrollo
 3. Proporciona detalles específicos y pasos para reproducir

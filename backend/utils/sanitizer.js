@@ -1,7 +1,7 @@
 /**
  * Utilidades de Sanitización de Inputs
  * Fase 7: Seguridad
- * 
+ *
  * Proporciona funciones para sanitizar y validar inputs del usuario
  * para prevenir XSS, inyección de código y otros ataques.
  */
@@ -16,7 +16,7 @@ const LIMITS = {
   USERNAME_MAX_LENGTH: 30,
   USERNAME_MIN_LENGTH: 3,
   EMAIL_MAX_LENGTH: 100,
-  ROOM_NAME_MAX_LENGTH: 50
+  ROOM_NAME_MAX_LENGTH: 50,
 };
 
 /**
@@ -25,7 +25,7 @@ const LIMITS = {
  * - Limita longitud
  * - Normaliza espacios
  * - Mantiene caracteres especiales válidos (acentos, etc.)
- * 
+ *
  * @param {string} clue - La pista a sanitizar
  * @returns {string} Pista sanitizada
  */
@@ -56,7 +56,7 @@ function sanitizeClue(clue) {
  * - Escapa HTML para prevenir XSS
  * - Valida caracteres permitidos (letras, números, guiones, guiones bajos)
  * - Limita longitud
- * 
+ *
  * @param {string} username - El nombre de usuario a sanitizar
  * @returns {string} Nombre de usuario sanitizado
  */
@@ -91,7 +91,7 @@ function sanitizeUsername(username) {
  * - Valida formato de email
  * - Normaliza a lowercase
  * - Limita longitud
- * 
+ *
  * @param {string} email - El email a sanitizar
  * @returns {string|null} Email sanitizado o null si es inválido
  */
@@ -121,7 +121,7 @@ function sanitizeEmail(email) {
  * - Escapa HTML para prevenir XSS
  * - Limita longitud
  * - Normaliza espacios
- * 
+ *
  * @param {string} input - El string a sanitizar
  * @param {number} maxLength - Longitud máxima (opcional, default: 100)
  * @returns {string} String sanitizado
@@ -153,7 +153,7 @@ function sanitizeString(input, maxLength = 100) {
  * - Escapa HTML para prevenir XSS
  * - Limita longitud
  * - Normaliza espacios
- * 
+ *
  * @param {string} roomName - El nombre de la sala a sanitizar
  * @returns {string} Nombre de sala sanitizado
  */
@@ -163,7 +163,7 @@ function sanitizeRoomName(roomName) {
 
 /**
  * Valida que un string no esté vacío después de sanitizar
- * 
+ *
  * @param {string} input - El string a validar
  * @returns {boolean} true si el string es válido y no está vacío
  */
@@ -181,5 +181,5 @@ module.exports = {
   sanitizeString,
   sanitizeRoomName,
   isValidAfterSanitization,
-  LIMITS
+  LIMITS,
 };

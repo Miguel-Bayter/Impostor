@@ -25,16 +25,16 @@ const app = express();
 const server = http.createServer(app);
 
 // Configuración de Socket.io con CORS dinámico
-const socketIoOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+const socketIoOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
   : ['http://127.0.0.1:5500', 'http://localhost:5500'];
 
 const io = socketIo(server, {
   cors: {
     origin: socketIoOrigins,
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
 
 // Configuración de CORS para desarrollo y producción
@@ -55,7 +55,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 // Middleware
@@ -83,7 +83,7 @@ authNamespace.on('connection', (socket) => {
   /**
    * Evento: auth:register
    * Registro de nuevo usuario por WebSocket
-   * 
+   *
    * Data esperada:
    * {
    *   username: "nombre_usuario",
@@ -97,7 +97,7 @@ authNamespace.on('connection', (socket) => {
     if (!rateLimitResult.allowed) {
       return socket.emit('auth:error', {
         error: 'Demasiados intentos',
-        message: `Has excedido el límite de registro. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`
+        message: `Has excedido el límite de registro. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
       });
     }
     try {
@@ -107,7 +107,7 @@ authNamespace.on('connection', (socket) => {
       if (!username || !email || !password) {
         return socket.emit('auth:error', {
           error: 'Campos requeridos faltantes',
-          message: 'Se requieren: username, email, password'
+          message: 'Se requieren: username, email, password',
         });
       }
 
@@ -124,17 +124,18 @@ authNamespace.on('connection', (socket) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          createdAt: user.createdAt
+          createdAt: user.createdAt,
         },
-        token: token
+        token: token,
       });
     } catch (error) {
       // Error de validación o usuario duplicado
       socket.emit('auth:error', {
-        error: error.message.includes('ya está') || error.message.includes('debe tener') 
-          ? 'Error de validación' 
-          : 'Error interno',
-        message: error.message
+        error:
+          error.message.includes('ya está') || error.message.includes('debe tener')
+            ? 'Error de validación'
+            : 'Error interno',
+        message: error.message,
       });
     }
   });
@@ -142,7 +143,7 @@ authNamespace.on('connection', (socket) => {
   /**
    * Evento: auth:login
    * Inicio de sesión por WebSocket
-   * 
+   *
    * Data esperada:
    * {
    *   email: "usuario@ejemplo.com",
@@ -155,7 +156,7 @@ authNamespace.on('connection', (socket) => {
     if (!rateLimitResult.allowed) {
       return socket.emit('auth:error', {
         error: 'Demasiados intentos',
-        message: `Has excedido el límite de inicio de sesión. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`
+        message: `Has excedido el límite de inicio de sesión. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
       });
     }
     try {
@@ -165,7 +166,7 @@ authNamespace.on('connection', (socket) => {
       if (!email || !password) {
         return socket.emit('auth:error', {
           error: 'Campos requeridos faltantes',
-          message: 'Se requieren: email, password'
+          message: 'Se requieren: email, password',
         });
       }
 
@@ -175,7 +176,7 @@ authNamespace.on('connection', (socket) => {
       if (!user) {
         return socket.emit('auth:error', {
           error: 'Credenciales inválidas',
-          message: 'Email o contraseña incorrectos'
+          message: 'Email o contraseña incorrectos',
         });
       }
 
@@ -185,7 +186,7 @@ authNamespace.on('connection', (socket) => {
       if (!isPasswordValid) {
         return socket.emit('auth:error', {
           error: 'Credenciales inválidas',
-          message: 'Email o contraseña incorrectos'
+          message: 'Email o contraseña incorrectos',
         });
       }
 
@@ -199,14 +200,14 @@ authNamespace.on('connection', (socket) => {
           id: user.id,
           username: user.username,
           email: user.email,
-          createdAt: user.createdAt
+          createdAt: user.createdAt,
         },
-        token: token
+        token: token,
       });
     } catch (error) {
       socket.emit('auth:error', {
         error: 'Error interno',
-        message: 'No se pudo iniciar sesión'
+        message: 'No se pudo iniciar sesión',
       });
     }
   });
@@ -229,15 +230,17 @@ setupGameHandlers(io);
 
 // WebSocket connection (solo se ejecuta si la autenticación es exitosa)
 io.on('connection', (socket) => {
-  console.log(`Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`);
+  console.log(
+    `Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`,
+  );
 
   // Evento de prueba de conexión
   socket.on('ping', () => {
-    socket.emit('pong', { 
-      message: 'Servidor activo', 
+    socket.emit('pong', {
+      message: 'Servidor activo',
       timestamp: Date.now(),
       userId: socket.userId,
-      username: socket.username
+      username: socket.username,
     });
   });
 
@@ -256,19 +259,19 @@ app.use('/api', generalLimiter);
 
 // Rutas API básicas
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
 // Manejo de errores
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Error interno del servidor',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 
@@ -282,4 +285,3 @@ server.listen(PORT, HOST, () => {
   console.log(`🌐 Entorno: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 CORS permitido para: ${allowedOrigins.join(', ')}`);
 });
-

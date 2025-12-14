@@ -24,6 +24,7 @@ El frontend estará disponible en `http://localhost:5500`
 ### Opción 2: Servidor estático
 
 Puedes usar cualquier servidor estático como:
+
 - Live Server (extensión de VS Code)
 - Python: `python -m http.server 5500`
 - Cualquier servidor web estático
@@ -45,6 +46,7 @@ frontend/
 ## 🔌 Conexión con Backend
 
 El frontend se conecta al backend mediante:
+
 - Socket.io para comunicación en tiempo real
 - API REST para operaciones estándar
 
@@ -53,4 +55,3 @@ Asegúrate de que el backend esté corriendo en `http://localhost:3000` (o confi
 ## 📝 Notas
 
 Este es un proyecto independiente. Para desarrollo completo, también necesitarás ejecutar el backend.
-

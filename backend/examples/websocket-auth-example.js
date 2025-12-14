@@ -1,6 +1,6 @@
 /**
  * Ejemplo de uso de Autenticación por WebSocket
- * 
+ *
  * Este archivo muestra cómo usar los eventos de registro y login
  * a través de WebSocket en lugar de HTTP REST API
  */
@@ -21,7 +21,7 @@ function registerViaWebSocket() {
     authSocket.emit('auth:register', {
       username: 'juan_perez',
       email: 'juan@ejemplo.com',
-      password: 'miPassword123'
+      password: 'miPassword123',
     });
   });
 
@@ -29,13 +29,13 @@ function registerViaWebSocket() {
   authSocket.on('auth:register:success', (data) => {
     console.log('Registro exitoso:', data);
     console.log('Token recibido:', data.token);
-    
+
     // Guardar el token (en localStorage, sessionStorage, etc.)
     localStorage.setItem('authToken', data.token);
-    
+
     // Ahora puedes conectarte al namespace principal con el token
     connectToMainNamespace(data.token);
-    
+
     // Desconectar del namespace de auth
     authSocket.disconnect();
   });
@@ -61,7 +61,7 @@ function loginViaWebSocket() {
     // Enviar evento de login
     authSocket.emit('auth:login', {
       email: 'juan@ejemplo.com',
-      password: 'miPassword123'
+      password: 'miPassword123',
     });
   });
 
@@ -69,13 +69,13 @@ function loginViaWebSocket() {
   authSocket.on('auth:login:success', (data) => {
     console.log('Login exitoso:', data);
     console.log('Token recibido:', data.token);
-    
+
     // Guardar el token
     localStorage.setItem('authToken', data.token);
-    
+
     // Conectar al namespace principal
     connectToMainNamespace(data.token);
-    
+
     // Desconectar del namespace de auth
     authSocket.disconnect();
   });
@@ -95,14 +95,14 @@ function connectToMainNamespace(token) {
   // Conectar al namespace principal (requiere token)
   const mainSocket = io('http://localhost:3000', {
     auth: {
-      token: token
-    }
+      token: token,
+    },
   });
 
   mainSocket.on('connect', () => {
     console.log('Conectado al namespace principal');
     console.log('Usuario autenticado:', mainSocket.userId);
-    
+
     // Ahora puedes usar todos los eventos del juego
     mainSocket.emit('ping');
   });
@@ -131,25 +131,25 @@ function completeAuthFlow() {
     authSocket.emit('auth:register', {
       username: 'nuevo_usuario',
       email: 'nuevo@ejemplo.com',
-      password: 'password123'
+      password: 'password123',
     });
   });
 
   authSocket.on('auth:register:success', (data) => {
     console.log('Usuario registrado:', data.user);
-    
+
     // Paso 2: Guardar token
     const token = data.token;
     localStorage.setItem('authToken', data.token);
-    
+
     // Paso 3: Conectar al namespace principal
     const mainSocket = io('http://localhost:3000', {
-      auth: { token: token }
+      auth: { token: token },
     });
 
     mainSocket.on('connect', () => {
       console.log('Conectado al juego como:', data.user.username);
-      
+
       // Paso 4: Ya puedes usar los eventos del juego
       // Por ejemplo, unirse a una sala, enviar pistas, etc.
       // mainSocket.emit('joinRoom', { roomId: 'sala123' });
@@ -240,7 +240,7 @@ class WebSocketAuth {
     }
 
     this.mainSocket = io(this.serverUrl, {
-      auth: { token: this.token }
+      auth: { token: this.token },
     });
 
     return new Promise((resolve, reject) => {
@@ -292,7 +292,6 @@ async function ejemploConClaseHelper() {
     gameSocket.on('pong', (data) => {
       console.log('Pong recibido:', data);
     });
-
   } catch (error) {
     console.error('Error:', error);
   }
@@ -302,4 +301,3 @@ async function ejemploConClaseHelper() {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { WebSocketAuth };
 }
-

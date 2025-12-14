@@ -1,7 +1,7 @@
 /**
  * Rutas de Salas
  * Fase 3: Sistema de Salas
- * 
+ *
  * Endpoints:
  * - POST /api/rooms/create - Crear nueva sala (requiere auth)
  * - POST /api/rooms/join - Unirse a sala existente (requiere auth)
@@ -20,7 +20,7 @@ const { sanitizeRoomName } = require('../utils/sanitizer');
  * POST /api/rooms/create
  * Crear nueva sala
  * Requiere autenticación
- * 
+ *
  * Body:
  * {
  *   "name": "Mi Sala" (opcional),
@@ -42,7 +42,7 @@ router.post('/create', authenticateToken, (req, res) => {
       if (!sanitizedName || sanitizedName.trim().length === 0) {
         return res.status(400).json({
           error: 'Nombre de sala inválido',
-          message: 'El nombre de la sala no puede estar vacío ni contener caracteres inválidos'
+          message: 'El nombre de la sala no puede estar vacío ni contener caracteres inválidos',
         });
       }
     }
@@ -52,19 +52,19 @@ router.post('/create', authenticateToken, (req, res) => {
       name: sanitizedName,
       minPlayers,
       maxPlayers,
-      numImpostors
+      numImpostors,
     });
 
     res.status(201).json({
       message: 'Sala creada exitosamente',
-      room: room
+      room: room,
     });
   } catch (error) {
     // Error de validación
     if (error.message.includes('debe ser') || error.message.includes('no puede')) {
       return res.status(400).json({
         error: 'Error de validación',
-        message: error.message
+        message: error.message,
       });
     }
 
@@ -72,7 +72,7 @@ router.post('/create', authenticateToken, (req, res) => {
     console.error('Error al crear sala:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudo crear la sala'
+      message: 'No se pudo crear la sala',
     });
   }
 });
@@ -81,7 +81,7 @@ router.post('/create', authenticateToken, (req, res) => {
  * POST /api/rooms/join
  * Unirse a sala existente
  * Requiere autenticación
- * 
+ *
  * Body:
  * {
  *   "roomId": "ABC123"
@@ -95,17 +95,17 @@ router.post('/join', authenticateToken, (req, res) => {
     if (!roomId) {
       return res.status(400).json({
         error: 'Room ID requerido',
-        message: 'Envía el roomId en el body: { "roomId": "..." }'
+        message: 'Envía el roomId en el body: { "roomId": "..." }',
       });
     }
 
     // Verificar que la sala existe
     const room = Room.findById(roomId);
-    
+
     if (!room) {
       return res.status(404).json({
         error: 'Sala no encontrada',
-        message: 'La sala especificada no existe'
+        message: 'La sala especificada no existe',
       });
     }
 
@@ -113,7 +113,7 @@ router.post('/join', authenticateToken, (req, res) => {
     if (room.players.length >= room.maxPlayers) {
       return res.status(400).json({
         error: 'Sala llena',
-        message: 'La sala ha alcanzado el máximo de jugadores'
+        message: 'La sala ha alcanzado el máximo de jugadores',
       });
     }
 
@@ -121,7 +121,7 @@ router.post('/join', authenticateToken, (req, res) => {
     if (room.status !== 'waiting') {
       return res.status(400).json({
         error: 'Sala no disponible',
-        message: 'La sala no está esperando jugadores'
+        message: 'La sala no está esperando jugadores',
       });
     }
 
@@ -129,20 +129,20 @@ router.post('/join', authenticateToken, (req, res) => {
     if (Room.isPlayerInRoom(roomId, userId)) {
       return res.status(400).json({
         error: 'Ya estás en esta sala',
-        message: 'No puedes unirte a una sala en la que ya estás'
+        message: 'No puedes unirte a una sala en la que ya estás',
       });
     }
 
     // Retornar información de la sala (el usuario se unirá por WebSocket)
     res.json({
       message: 'Puedes unirte a esta sala',
-      room: room
+      room: room,
     });
   } catch (error) {
     console.error('Error al unirse a sala:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudo unir a la sala'
+      message: 'No se pudo unir a la sala',
     });
   }
 });
@@ -157,22 +157,22 @@ router.get('/:roomId', (req, res) => {
     const { roomId } = req.params;
 
     const room = Room.findById(roomId);
-    
+
     if (!room) {
       return res.status(404).json({
         error: 'Sala no encontrada',
-        message: 'La sala especificada no existe'
+        message: 'La sala especificada no existe',
       });
     }
 
     res.json({
-      room: room
+      room: room,
     });
   } catch (error) {
     console.error('Error al obtener sala:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudo obtener la información de la sala'
+      message: 'No se pudo obtener la información de la sala',
     });
   }
 });
@@ -188,13 +188,13 @@ router.get('/', (req, res) => {
 
     res.json({
       rooms: availableRooms,
-      count: availableRooms.length
+      count: availableRooms.length,
     });
   } catch (error) {
     console.error('Error al listar salas:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudieron listar las salas'
+      message: 'No se pudieron listar las salas',
     });
   }
 });
@@ -211,11 +211,11 @@ router.post('/:roomId/leave', authenticateToken, (req, res) => {
 
     // Verificar que la sala existe
     const room = Room.getRoomInternal(roomId);
-    
+
     if (!room) {
       return res.status(404).json({
         error: 'Sala no encontrada',
-        message: 'La sala especificada no existe'
+        message: 'La sala especificada no existe',
       });
     }
 
@@ -223,7 +223,7 @@ router.post('/:roomId/leave', authenticateToken, (req, res) => {
     if (!Room.isPlayerInRoom(roomId, userId)) {
       return res.status(400).json({
         error: 'No estás en esta sala',
-        message: 'No puedes abandonar una sala en la que no estás'
+        message: 'No puedes abandonar una sala en la que no estás',
       });
     }
 
@@ -234,22 +234,21 @@ router.post('/:roomId/leave', authenticateToken, (req, res) => {
       // La sala se eliminó porque quedó vacía
       return res.json({
         message: 'Has abandonado la sala. La sala se eliminó porque quedó vacía.',
-        room: null
+        room: null,
       });
     }
 
     res.json({
       message: 'Has abandonado la sala',
-      room: updatedRoom
+      room: updatedRoom,
     });
   } catch (error) {
     console.error('Error al abandonar sala:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudo abandonar la sala'
+      message: 'No se pudo abandonar la sala',
     });
   }
 });
 
 module.exports = router;
-

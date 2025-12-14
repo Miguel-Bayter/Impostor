@@ -1,7 +1,7 @@
 /**
  * Rutas de Autenticación
  * Fase 2: Autenticación
- * 
+ *
  * Endpoints:
  * - POST /api/auth/register - Registro de nuevo usuario
  * - POST /api/auth/login - Inicio de sesión
@@ -18,7 +18,7 @@ const { sanitizeUsername, sanitizeEmail } = require('../utils/sanitizer');
 /**
  * POST /api/auth/register
  * Registro de nuevo usuario
- * 
+ *
  * Body:
  * {
  *   "username": "nombre_usuario",
@@ -34,7 +34,7 @@ router.post('/register', async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({
         error: 'Campos requeridos faltantes',
-        message: 'Se requieren: username, email, password'
+        message: 'Se requieren: username, email, password',
       });
     }
 
@@ -46,14 +46,14 @@ router.post('/register', async (req, res) => {
     if (!sanitizedUsername || sanitizedUsername.trim().length === 0) {
       return res.status(400).json({
         error: 'Nombre de usuario inválido',
-        message: 'El nombre de usuario contiene caracteres no permitidos o está vacío'
+        message: 'El nombre de usuario contiene caracteres no permitidos o está vacío',
       });
     }
 
     if (!sanitizedEmail) {
       return res.status(400).json({
         error: 'Email inválido',
-        message: 'El formato del email no es válido'
+        message: 'El formato del email no es válido',
       });
     }
 
@@ -70,16 +70,16 @@ router.post('/register', async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
       },
-      token: token
+      token: token,
     });
   } catch (error) {
     // Error de validación o usuario duplicado
     if (error.message.includes('ya está') || error.message.includes('debe tener')) {
       return res.status(400).json({
         error: 'Error de validación',
-        message: error.message
+        message: error.message,
       });
     }
 
@@ -87,7 +87,7 @@ router.post('/register', async (req, res) => {
     console.error('Error en registro:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudo registrar el usuario'
+      message: 'No se pudo registrar el usuario',
     });
   }
 });
@@ -95,7 +95,7 @@ router.post('/register', async (req, res) => {
 /**
  * POST /api/auth/login
  * Inicio de sesión
- * 
+ *
  * Body:
  * {
  *   "email": "usuario@ejemplo.com",
@@ -110,7 +110,7 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         error: 'Campos requeridos faltantes',
-        message: 'Se requieren: email, password'
+        message: 'Se requieren: email, password',
       });
     }
 
@@ -120,7 +120,7 @@ router.post('/login', async (req, res) => {
     if (!sanitizedEmail) {
       return res.status(400).json({
         error: 'Email inválido',
-        message: 'El formato del email no es válido'
+        message: 'El formato del email no es válido',
       });
     }
 
@@ -130,7 +130,7 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.status(401).json({
         error: 'Credenciales inválidas',
-        message: 'Email o contraseña incorrectos'
+        message: 'Email o contraseña incorrectos',
       });
     }
 
@@ -140,7 +140,7 @@ router.post('/login', async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({
         error: 'Credenciales inválidas',
-        message: 'Email o contraseña incorrectos'
+        message: 'Email o contraseña incorrectos',
       });
     }
 
@@ -154,15 +154,15 @@ router.post('/login', async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
       },
-      token: token
+      token: token,
     });
   } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({
       error: 'Error interno del servidor',
-      message: 'No se pudo iniciar sesión'
+      message: 'No se pudo iniciar sesión',
     });
   }
 });
@@ -175,14 +175,14 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, (req, res) => {
   // El middleware authenticateToken ya adjuntó req.user
   res.json({
-    user: req.user
+    user: req.user,
   });
 });
 
 /**
  * POST /api/auth/verify
  * Verificar si un token es válido
- * 
+ *
  * Body:
  * {
  *   "token": "jwt_token_here"
@@ -195,7 +195,7 @@ router.post('/verify', (req, res) => {
     if (!token) {
       return res.status(400).json({
         error: 'Token requerido',
-        message: 'Envía el token en el body: { "token": "..." }'
+        message: 'Envía el token en el body: { "token": "..." }',
       });
     }
 
@@ -208,7 +208,7 @@ router.post('/verify', (req, res) => {
     if (!user) {
       return res.status(401).json({
         valid: false,
-        error: 'Usuario no encontrado'
+        error: 'Usuario no encontrado',
       });
     }
 
@@ -217,16 +217,15 @@ router.post('/verify', (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (error) {
     res.status(401).json({
       valid: false,
-      error: error.message
+      error: error.message,
     });
   }
 });
 
 module.exports = router;
-

@@ -1,7 +1,7 @@
 /**
  * Modelo de Sala - Almacenamiento en Memoria
  * Fase 3: Sistema de Salas
- * 
+ *
  * NOTA: Este modelo usa almacenamiento en memoria (Map) para desarrollo.
  * En producción, migrar a base de datos (MongoDB/PostgreSQL).
  */
@@ -45,7 +45,7 @@ class Room {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -61,7 +61,7 @@ class Room {
     const settings = {
       minPlayers: options.minPlayers || 3,
       maxPlayers: options.maxPlayers || 8,
-      numImpostors: options.numImpostors || 1
+      numImpostors: options.numImpostors || 1,
     };
 
     const validation = this.validateRoomSettings(settings);
@@ -80,19 +80,21 @@ class Room {
       name: options.name || `Sala de ${hostUsername}`,
       status: 'waiting', // waiting | starting | in_progress | finished
       maxPlayers: settings.maxPlayers,
-      players: [{
-        userId: hostId,
-        username: hostUsername,
-        socketId: null, // Se asignará cuando se conecte por WebSocket
-        joinedAt: now,
-        isHost: true
-      }],
+      players: [
+        {
+          userId: hostId,
+          username: hostUsername,
+          socketId: null, // Se asignará cuando se conecte por WebSocket
+          joinedAt: now,
+          isHost: true,
+        },
+      ],
       settings: {
         minPlayers: settings.minPlayers,
-        numImpostors: settings.numImpostors
+        numImpostors: settings.numImpostors,
       },
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     // Guardar en memoria
@@ -109,7 +111,7 @@ class Room {
    */
   findById(roomId) {
     const room = this.roomsById.get(roomId);
-    
+
     if (!room) {
       return null;
     }
@@ -136,7 +138,7 @@ class Room {
    */
   addPlayer(roomId, userId, username, socketId) {
     const room = this.roomsById.get(roomId);
-    
+
     if (!room) {
       throw new Error('Sala no encontrada');
     }
@@ -150,7 +152,7 @@ class Room {
     }
 
     // Verificar que el jugador no esté ya en la sala
-    const existingPlayer = room.players.find(p => p.userId === userId);
+    const existingPlayer = room.players.find((p) => p.userId === userId);
     if (existingPlayer) {
       // Actualizar socketId si ya está en la sala
       existingPlayer.socketId = socketId;
@@ -164,7 +166,7 @@ class Room {
       username: username,
       socketId: socketId,
       joinedAt: new Date().toISOString(),
-      isHost: false
+      isHost: false,
     });
 
     room.updatedAt = new Date().toISOString();
@@ -180,13 +182,13 @@ class Room {
    */
   removePlayer(roomId, userId) {
     const room = this.roomsById.get(roomId);
-    
+
     if (!room) {
       return null;
     }
 
     // Remover jugador
-    room.players = room.players.filter(p => p.userId !== userId);
+    room.players = room.players.filter((p) => p.userId !== userId);
 
     // Si la sala queda vacía, eliminarla
     if (room.players.length === 0) {
@@ -213,12 +215,12 @@ class Room {
    */
   updatePlayerSocket(roomId, userId, socketId) {
     const room = this.roomsById.get(roomId);
-    
+
     if (!room) {
       return;
     }
 
-    const player = room.players.find(p => p.userId === userId);
+    const player = room.players.find((p) => p.userId === userId);
     if (player) {
       player.socketId = socketId;
       room.updatedAt = new Date().toISOString();
@@ -232,7 +234,7 @@ class Room {
    */
   updateStatus(roomId, status) {
     const room = this.roomsById.get(roomId);
-    
+
     if (!room) {
       throw new Error('Sala no encontrada');
     }
@@ -254,12 +256,12 @@ class Room {
    */
   isPlayerInRoom(roomId, userId) {
     const room = this.roomsById.get(roomId);
-    
+
     if (!room) {
       return false;
     }
 
-    return room.players.some(p => p.userId === userId);
+    return room.players.some((p) => p.userId === userId);
   }
 
   /**
@@ -267,9 +269,7 @@ class Room {
    * @returns {Array} Lista de salas sanitizadas
    */
   getAll() {
-    return Array.from(this.roomsById.values()).map(room => 
-      this.sanitizeRoom(room)
-    );
+    return Array.from(this.roomsById.values()).map((room) => this.sanitizeRoom(room));
   }
 
   /**
@@ -278,8 +278,8 @@ class Room {
    */
   getAvailableRooms() {
     return Array.from(this.roomsById.values())
-      .filter(room => room.status === 'waiting' && room.players.length < room.maxPlayers)
-      .map(room => this.sanitizeRoom(room));
+      .filter((room) => room.status === 'waiting' && room.players.length < room.maxPlayers)
+      .map((room) => this.sanitizeRoom(room));
   }
 
   /**
@@ -304,16 +304,16 @@ class Room {
       name: room.name,
       status: room.status,
       maxPlayers: room.maxPlayers,
-      players: room.players.map(p => ({
+      players: room.players.map((p) => ({
         userId: p.userId,
         username: p.username,
         joinedAt: p.joinedAt,
-        isHost: p.isHost
+        isHost: p.isHost,
         // No incluir socketId en la respuesta
       })),
       settings: { ...room.settings },
       createdAt: room.createdAt,
-      updatedAt: room.updatedAt
+      updatedAt: room.updatedAt,
     };
 
     return sanitized;
@@ -329,4 +329,3 @@ class Room {
 
 // Exportar instancia singleton
 module.exports = new Room();
-

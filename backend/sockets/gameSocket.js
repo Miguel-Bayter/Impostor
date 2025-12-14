@@ -1,7 +1,7 @@
 /**
  * Handlers WebSocket para Lógica del Juego
  * Fase 4: Lógica del Juego
- * 
+ *
  * Eventos manejados:
  * - game:start - Iniciar juego (solo host)
  * - game:startCluesPhase - Iniciar fase de pistas (solo host)
@@ -10,7 +10,7 @@
  * - game:submitVote - Enviar voto
  * - game:getState - Solicitar estado actual
  * - game:startNewRound - Iniciar nueva ronda
- * 
+ *
  * Eventos emitidos:
  * - game:state - Estado actualizado del juego
  * - game:rolesConfirmed - Confirmación de rol recibida
@@ -34,12 +34,14 @@ const { sanitizeClue } = require('../utils/sanitizer');
  */
 function setupGameHandlers(io) {
   io.on('connection', (socket) => {
-    console.log(`[Game] Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`);
+    console.log(
+      `[Game] Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`,
+    );
 
     /**
      * Evento: game:start
      * Iniciar juego en una sala (solo el host puede iniciar)
-     * 
+     *
      * Data esperada:
      * {
      *   roomId: "ABC123"
@@ -52,7 +54,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de inicio de juego. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -62,17 +64,17 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "..." }'
+            message: 'Envía el roomId: { "roomId": "..." }',
           });
         }
 
         // Verificar que la sala existe
         const room = Room.getRoomInternal(roomId);
-        
+
         if (!room) {
           return socket.emit('game:error', {
             error: 'Sala no encontrada',
-            message: 'La sala especificada no existe'
+            message: 'La sala especificada no existe',
           });
         }
 
@@ -80,7 +82,7 @@ function setupGameHandlers(io) {
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para iniciar el juego'
+            message: 'Debes estar en la sala para iniciar el juego',
           });
         }
 
@@ -88,7 +90,7 @@ function setupGameHandlers(io) {
         if (room.hostId !== socket.userId) {
           return socket.emit('game:error', {
             error: 'Solo el host puede iniciar el juego',
-            message: 'Solo el creador de la sala puede iniciar el juego'
+            message: 'Solo el creador de la sala puede iniciar el juego',
           });
         }
 
@@ -97,7 +99,7 @@ function setupGameHandlers(io) {
         if (room.players.length < minPlayers) {
           return socket.emit('game:error', {
             error: 'Jugadores insuficientes',
-            message: `Se requieren al menos ${minPlayers} jugadores para iniciar`
+            message: `Se requieren al menos ${minPlayers} jugadores para iniciar`,
           });
         }
 
@@ -105,7 +107,7 @@ function setupGameHandlers(io) {
         if (Game.hasGame(roomId)) {
           return socket.emit('game:error', {
             error: 'Juego ya iniciado',
-            message: 'El juego ya está en progreso en esta sala'
+            message: 'El juego ya está en progreso en esta sala',
           });
         }
 
@@ -119,18 +121,18 @@ function setupGameHandlers(io) {
         // Enviar estado del juego a todos en la sala
         // Cada jugador recibe su versión del estado (con/sin palabra secreta según su rol)
         const playersInRoom = room.players;
-        playersInRoom.forEach(player => {
+        playersInRoom.forEach((player) => {
           const playerGameState = Game.getGameState(roomId, player.userId);
           io.to(player.socketId || socket.id).emit('game:state', {
             gameState: playerGameState,
-            phase: 'roles'
+            phase: 'roles',
           });
         });
 
         // Broadcast cambio de fase
         io.to(roomId).emit('game:phaseChanged', {
           phase: 'roles',
-          message: 'El juego ha comenzado. Revisa tu rol.'
+          message: 'El juego ha comenzado. Revisa tu rol.',
         });
 
         console.log(`[Game] Juego iniciado en sala ${roomId} por ${socket.username}`);
@@ -138,7 +140,7 @@ function setupGameHandlers(io) {
         console.error('[Game] Error al iniciar juego:', error);
         socket.emit('game:error', {
           error: 'Error al iniciar el juego',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -146,7 +148,7 @@ function setupGameHandlers(io) {
     /**
      * Evento: game:startCluesPhase
      * Iniciar fase de pistas (solo host puede hacerlo)
-     * 
+     *
      * Data esperada:
      * {
      *   roomId: "ABC123"
@@ -159,7 +161,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de solicitudes. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -169,7 +171,7 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "..." }'
+            message: 'Envía el roomId: { "roomId": "..." }',
           });
         }
 
@@ -178,7 +180,7 @@ function setupGameHandlers(io) {
         if (!room) {
           return socket.emit('game:error', {
             error: 'Sala no encontrada',
-            message: 'La sala especificada no existe'
+            message: 'La sala especificada no existe',
           });
         }
 
@@ -186,7 +188,7 @@ function setupGameHandlers(io) {
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para iniciar la fase de pistas'
+            message: 'Debes estar en la sala para iniciar la fase de pistas',
           });
         }
 
@@ -194,7 +196,7 @@ function setupGameHandlers(io) {
         if (room.hostId !== socket.userId) {
           return socket.emit('game:error', {
             error: 'Solo el host puede iniciar la fase de pistas',
-            message: 'Solo el creador de la sala puede iniciar la partida'
+            message: 'Solo el creador de la sala puede iniciar la partida',
           });
         }
 
@@ -202,7 +204,7 @@ function setupGameHandlers(io) {
         if (!Game.hasGame(roomId)) {
           return socket.emit('game:error', {
             error: 'Juego no encontrado',
-            message: 'El juego no ha sido iniciado en esta sala'
+            message: 'El juego no ha sido iniciado en esta sala',
           });
         }
 
@@ -211,7 +213,7 @@ function setupGameHandlers(io) {
         if (!gameState || gameState.phase !== 'roles') {
           return socket.emit('game:error', {
             error: 'Fase incorrecta',
-            message: 'Solo se puede iniciar la fase de pistas desde la fase de roles'
+            message: 'Solo se puede iniciar la fase de pistas desde la fase de roles',
           });
         }
 
@@ -219,18 +221,18 @@ function setupGameHandlers(io) {
         Game.changePhase(roomId, 'clues');
 
         // Enviar estado actualizado a todos los jugadores
-        room.players.forEach(player => {
+        room.players.forEach((player) => {
           const playerGameState = Game.getGameState(roomId, player.userId);
           io.to(player.socketId || socket.id).emit('game:state', {
             gameState: playerGameState,
-            phase: 'clues'
+            phase: 'clues',
           });
         });
 
         // Broadcast cambio de fase
         io.to(roomId).emit('game:phaseChanged', {
           phase: 'clues',
-          message: 'El host ha iniciado la partida. Comienza la fase de pistas.'
+          message: 'El host ha iniciado la partida. Comienza la fase de pistas.',
         });
 
         console.log(`[Game] Fase de pistas iniciada en sala ${roomId} por ${socket.username}`);
@@ -238,7 +240,7 @@ function setupGameHandlers(io) {
         console.error('[Game] Error al iniciar fase de pistas:', error);
         socket.emit('game:error', {
           error: 'Error al iniciar fase de pistas',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -246,7 +248,7 @@ function setupGameHandlers(io) {
     /**
      * Evento: game:confirmRoles
      * Confirmar que el jugador ha visto su rol (deprecated - mantenido por compatibilidad)
-     * 
+     *
      * Data esperada:
      * {
      *   roomId: "ABC123"
@@ -259,7 +261,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de confirmaciones. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -269,7 +271,7 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "..." }'
+            message: 'Envía el roomId: { "roomId": "..." }',
           });
         }
 
@@ -277,7 +279,7 @@ function setupGameHandlers(io) {
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para confirmar tu rol'
+            message: 'Debes estar en la sala para confirmar tu rol',
           });
         }
 
@@ -287,11 +289,11 @@ function setupGameHandlers(io) {
         // Enviar estado actualizado a todos los jugadores
         const room = Room.getRoomInternal(roomId);
         if (room) {
-          room.players.forEach(player => {
+          room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
             io.to(player.socketId || socket.id).emit('game:state', {
               gameState: playerGameState,
-              phase: result.gameState.phase
+              phase: result.gameState.phase,
             });
           });
         }
@@ -300,21 +302,23 @@ function setupGameHandlers(io) {
         if (result.phaseChanged) {
           io.to(roomId).emit('game:phaseChanged', {
             phase: 'clues',
-            message: 'Todos los jugadores han visto sus roles. Comienza la fase de pistas.'
+            message: 'Todos los jugadores han visto sus roles. Comienza la fase de pistas.',
           });
 
-          console.log(`[Game] Todos los jugadores confirmaron roles en sala ${roomId}. Avanzando a fase de pistas.`);
+          console.log(
+            `[Game] Todos los jugadores confirmaron roles en sala ${roomId}. Avanzando a fase de pistas.`,
+          );
         } else {
           // Notificar al jugador que su confirmación fue recibida
           socket.emit('game:rolesConfirmed', {
-            message: 'Confirmación recibida. Esperando a otros jugadores...'
+            message: 'Confirmación recibida. Esperando a otros jugadores...',
           });
         }
       } catch (error) {
         console.error('[Game] Error al confirmar roles:', error);
         socket.emit('game:error', {
           error: 'Error al confirmar roles',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -322,7 +326,7 @@ function setupGameHandlers(io) {
     /**
      * Evento: game:getState
      * Solicitar estado actual del juego
-     * 
+     *
      * Data esperada (opcional):
      * {
      *   roomId: "ABC123" (opcional, usa la sala actual si no se especifica)
@@ -335,7 +339,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de solicitudes de estado. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -345,7 +349,7 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Especifica el roomId o únete a una sala primero'
+            message: 'Especifica el roomId o únete a una sala primero',
           });
         }
 
@@ -353,7 +357,7 @@ function setupGameHandlers(io) {
         if (!Game.hasGame(roomId)) {
           return socket.emit('game:error', {
             error: 'Juego no encontrado',
-            message: 'El juego no ha sido iniciado en esta sala'
+            message: 'El juego no ha sido iniciado en esta sala',
           });
         }
 
@@ -361,13 +365,13 @@ function setupGameHandlers(io) {
         const gameState = Game.getGameState(roomId, socket.userId);
 
         socket.emit('game:state', {
-          gameState: gameState
+          gameState: gameState,
         });
       } catch (error) {
         console.error('[Game] Error al obtener estado:', error);
         socket.emit('game:error', {
           error: 'Error al obtener estado del juego',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -375,7 +379,7 @@ function setupGameHandlers(io) {
     /**
      * Evento: game:submitClue
      * Enviar pista del jugador actual
-     * 
+     *
      * Data esperada:
      * {
      *   roomId: "ABC123",
@@ -389,7 +393,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de envío de pistas. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -399,24 +403,24 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "...", "clue": "..." }'
+            message: 'Envía el roomId: { "roomId": "...", "clue": "..." }',
           });
         }
 
         if (!clue || !clue.trim()) {
           return socket.emit('game:error', {
             error: 'Pista requerida',
-            message: 'Envía una pista válida'
+            message: 'Envía una pista válida',
           });
         }
 
         // Sanitizar pista (escapar HTML, limitar longitud, normalizar espacios)
         const sanitizedClue = sanitizeClue(clue);
-        
+
         if (!sanitizedClue || sanitizedClue.trim().length === 0) {
           return socket.emit('game:error', {
             error: 'Pista inválida',
-            message: 'La pista no puede estar vacía después de sanitización'
+            message: 'La pista no puede estar vacía después de sanitización',
           });
         }
 
@@ -424,7 +428,7 @@ function setupGameHandlers(io) {
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para enviar pistas'
+            message: 'Debes estar en la sala para enviar pistas',
           });
         }
 
@@ -437,16 +441,16 @@ function setupGameHandlers(io) {
           io.to(roomId).emit('game:wordGuessed', {
             guessedBy: result.guessedBy,
             message: `${result.guessedBy.username} adivinó la palabra secreta!`,
-            gameState: null // Cada jugador recibirá su versión
+            gameState: null, // Cada jugador recibirá su versión
           });
 
           // Enviar estado actualizado a cada jugador
           const room = Room.getRoomInternal(roomId);
           if (room) {
-            room.players.forEach(player => {
+            room.players.forEach((player) => {
               const playerGameState = Game.getGameState(roomId, player.userId);
               io.to(player.socketId || socket.id).emit('game:state', {
-                gameState: playerGameState
+                gameState: playerGameState,
               });
             });
           }
@@ -455,10 +459,12 @@ function setupGameHandlers(io) {
           Game.changePhase(roomId, 'results');
           io.to(roomId).emit('game:phaseChanged', {
             phase: 'results',
-            message: 'La palabra secreta fue adivinada. La ronda termina.'
+            message: 'La palabra secreta fue adivinada. La ronda termina.',
           });
 
-          console.log(`[Game] Palabra secreta adivinada por ${result.guessedBy.username} en sala ${roomId}`);
+          console.log(
+            `[Game] Palabra secreta adivinada por ${result.guessedBy.username} en sala ${roomId}`,
+          );
           return;
         }
 
@@ -466,16 +472,16 @@ function setupGameHandlers(io) {
         const lastClue = result.gameState.clues[result.gameState.clues.length - 1];
         io.to(roomId).emit('game:clueSubmitted', {
           clue: lastClue,
-          gameState: null // Cada jugador recibirá su versión
+          gameState: null, // Cada jugador recibirá su versión
         });
 
         // Enviar estado actualizado a cada jugador
         const room = Room.getRoomInternal(roomId);
         if (room) {
-          room.players.forEach(player => {
+          room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
             io.to(player.socketId || socket.id).emit('game:state', {
-              gameState: playerGameState
+              gameState: playerGameState,
             });
           });
         }
@@ -484,13 +490,13 @@ function setupGameHandlers(io) {
         if (result.gameState.phase === 'voting') {
           io.to(roomId).emit('game:phaseChanged', {
             phase: 'voting',
-            message: 'Todos han dado su pista. Comienza la votación.'
+            message: 'Todos han dado su pista. Comienza la votación.',
           });
         } else {
           // Cambio de turno
           io.to(roomId).emit('game:turnChanged', {
             currentTurn: result.gameState.currentTurn,
-            message: 'Es el turno del siguiente jugador'
+            message: 'Es el turno del siguiente jugador',
           });
         }
 
@@ -499,7 +505,7 @@ function setupGameHandlers(io) {
         console.error('[Game] Error al enviar pista:', error);
         socket.emit('game:error', {
           error: 'Error al enviar pista',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -507,7 +513,7 @@ function setupGameHandlers(io) {
     /**
      * Evento: game:submitVote
      * Enviar voto del jugador actual
-     * 
+     *
      * Data esperada:
      * {
      *   roomId: "ABC123",
@@ -521,7 +527,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de votación. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -531,14 +537,14 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "...", "votedPlayerId": "..." }'
+            message: 'Envía el roomId: { "roomId": "...", "votedPlayerId": "..." }',
           });
         }
 
         if (!votedPlayerId) {
           return socket.emit('game:error', {
             error: 'Jugador votado requerido',
-            message: 'Envía el ID del jugador por el que votas'
+            message: 'Envía el ID del jugador por el que votas',
           });
         }
 
@@ -546,7 +552,7 @@ function setupGameHandlers(io) {
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para votar'
+            message: 'Debes estar en la sala para votar',
           });
         }
 
@@ -557,16 +563,16 @@ function setupGameHandlers(io) {
         io.to(roomId).emit('game:voteSubmitted', {
           voterId: socket.userId,
           votedPlayerId: votedPlayerId,
-          votingComplete: result.votingComplete
+          votingComplete: result.votingComplete,
         });
 
         // Enviar estado actualizado a cada jugador
         const room = Room.getRoomInternal(roomId);
         if (room) {
-          room.players.forEach(player => {
+          room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
             io.to(player.socketId || socket.id).emit('game:state', {
-              gameState: playerGameState
+              gameState: playerGameState,
             });
           });
         }
@@ -576,31 +582,33 @@ function setupGameHandlers(io) {
           io.to(roomId).emit('game:votingResults', {
             results: result.results,
             victoryCheck: result.victoryCheck,
-            message: result.victoryCheck.winner 
+            message: result.victoryCheck.winner
               ? `¡${result.victoryCheck.winner === 'citizens' ? 'Ciudadanos' : 'Impostores'} ganan!`
-              : 'El juego continúa...'
+              : 'El juego continúa...',
           });
 
           // Cambiar fase según resultado
           if (result.victoryCheck.winner) {
             io.to(roomId).emit('game:phaseChanged', {
               phase: 'victory',
-              message: 'El juego ha terminado'
+              message: 'El juego ha terminado',
             });
           } else {
             io.to(roomId).emit('game:phaseChanged', {
               phase: 'results',
-              message: 'Resultados de la votación'
+              message: 'Resultados de la votación',
             });
           }
 
-          console.log(`[Game] Votación completada en sala ${roomId}. Eliminado: ${result.results.eliminatedPlayer.username}`);
+          console.log(
+            `[Game] Votación completada en sala ${roomId}. Eliminado: ${result.results.eliminatedPlayer.username}`,
+          );
         } else {
           // Cambio de turno de votación
           const gameState = Game.getGameState(roomId, socket.userId);
           io.to(roomId).emit('game:turnChanged', {
             currentTurn: gameState.currentVotingTurn,
-            message: 'Es el turno del siguiente jugador para votar'
+            message: 'Es el turno del siguiente jugador para votar',
           });
         }
 
@@ -609,7 +617,7 @@ function setupGameHandlers(io) {
         console.error('[Game] Error al enviar voto:', error);
         socket.emit('game:error', {
           error: 'Error al enviar voto',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -617,7 +625,7 @@ function setupGameHandlers(io) {
     /**
      * Evento: game:startNewRound
      * Iniciar nueva ronda (después de ver resultados)
-     * 
+     *
      * Data esperada:
      * {
      *   roomId: "ABC123"
@@ -630,7 +638,7 @@ function setupGameHandlers(io) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
           message: `Has excedido el límite de inicio de ronda. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter
+          retryAfter: rateLimitResult.retryAfter,
         });
       }
 
@@ -640,7 +648,7 @@ function setupGameHandlers(io) {
         if (!roomId) {
           return socket.emit('game:error', {
             error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "..." }'
+            message: 'Envía el roomId: { "roomId": "..." }',
           });
         }
 
@@ -648,7 +656,7 @@ function setupGameHandlers(io) {
         if (!Room.isPlayerInRoom(roomId, socket.userId)) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para iniciar una nueva ronda'
+            message: 'Debes estar en la sala para iniciar una nueva ronda',
           });
         }
 
@@ -657,7 +665,7 @@ function setupGameHandlers(io) {
         if (!room || room.hostId !== socket.userId) {
           return socket.emit('game:error', {
             error: 'Solo el host puede iniciar una nueva ronda',
-            message: 'Solo el creador de la sala puede iniciar una nueva ronda'
+            message: 'Solo el creador de la sala puede iniciar una nueva ronda',
           });
         }
 
@@ -665,17 +673,17 @@ function setupGameHandlers(io) {
         Game.startNewRound(roomId);
 
         // Enviar estado actualizado a todos
-        room.players.forEach(player => {
+        room.players.forEach((player) => {
           const playerGameState = Game.getGameState(roomId, player.userId);
           io.to(player.socketId || socket.id).emit('game:state', {
-            gameState: playerGameState
+            gameState: playerGameState,
           });
         });
 
         // Broadcast cambio de fase
         io.to(roomId).emit('game:phaseChanged', {
           phase: 'clues',
-          message: 'Nueva ronda iniciada. Comienza la fase de pistas.'
+          message: 'Nueva ronda iniciada. Comienza la fase de pistas.',
         });
 
         console.log(`[Game] Nueva ronda iniciada en sala ${roomId} por ${socket.username}`);
@@ -683,7 +691,7 @@ function setupGameHandlers(io) {
         console.error('[Game] Error al iniciar nueva ronda:', error);
         socket.emit('game:error', {
           error: 'Error al iniciar nueva ronda',
-          message: error.message
+          message: error.message,
         });
       }
     });
@@ -701,5 +709,5 @@ function setupGameHandlers(io) {
 }
 
 module.exports = {
-  setupGameHandlers
+  setupGameHandlers,
 };

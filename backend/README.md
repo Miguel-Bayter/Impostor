@@ -17,11 +17,13 @@ npm install
 ## ⚙️ Configuración
 
 1. Copiar el archivo de ejemplo de variables de entorno:
+
 ```bash
 cp ../env.example.txt .env
 ```
 
 2. Editar `.env` con tus configuraciones:
+
 ```env
 PORT=3000
 FRONTEND_URL=http://localhost:5500
@@ -65,4 +67,3 @@ backend/
 ## 📝 Notas
 
 Este es un proyecto independiente. Para desarrollo completo, también necesitarás ejecutar el frontend.
-

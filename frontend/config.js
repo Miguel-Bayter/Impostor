@@ -4,7 +4,8 @@
  */
 
 // Detectar si estamos en producción (Vercel inyecta esta variable)
-const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+const isProduction =
+  window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 
 // URL del servidor backend en producción (Railway)
 const PRODUCTION_SERVER_URL = 'https://impostor-production-cb9c.up.railway.app';
@@ -17,14 +18,15 @@ let SERVER_URL;
 if (isProduction) {
   // En producción, usar la URL configurada o intentar obtener de variable de entorno
   // Vercel puede inyectar esto como variable de entorno en build time
-  SERVER_URL = PRODUCTION_SERVER_URL ||
-               window.SERVER_URL || 
-               process?.env?.SERVER_URL || 
-               process?.env?.VITE_SERVER_URL ||
-               // Si no está configurado, intentar construir desde el dominio actual
-               (window.location.protocol === 'https:' 
-                 ? `https://${window.location.hostname.replace('impostor-frontend', 'impostor-backend')}`
-                 : `http://${window.location.hostname}:3000`);
+  SERVER_URL =
+    PRODUCTION_SERVER_URL ||
+    window.SERVER_URL ||
+    process?.env?.SERVER_URL ||
+    process?.env?.VITE_SERVER_URL ||
+    // Si no está configurado, intentar construir desde el dominio actual
+    (window.location.protocol === 'https:'
+      ? `https://${window.location.hostname.replace('impostor-frontend', 'impostor-backend')}`
+      : `http://${window.location.hostname}:3000`);
 } else {
   // En desarrollo, usar localhost
   SERVER_URL = window.SERVER_URL || 'http://localhost:3000';
@@ -44,7 +46,7 @@ window.APP_CONFIG = {
   SERVER_URL: SERVER_URL,
   SOCKET_IO_URL: USE_SOCKET_IO_CDN ? SOCKET_IO_CDN : SOCKET_IO_LOCAL,
   USE_SOCKET_IO_CDN: USE_SOCKET_IO_CDN,
-  IS_PRODUCTION: isProduction
+  IS_PRODUCTION: isProduction,
 };
 
 // También exponer SERVER_URL globalmente para compatibilidad

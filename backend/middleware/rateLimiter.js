@@ -1,7 +1,7 @@
 /**
  * Middleware de Rate Limiting para API REST
  * Fase 7: Seguridad
- * 
+ *
  * Proporciona diferentes límites de rate limiting para diferentes rutas
  */
 
@@ -10,7 +10,7 @@ const rateLimit = require('express-rate-limit');
 /**
  * Rate limiter para autenticación (más estricto)
  * Previene ataques de fuerza bruta en login/registro
- * 
+ *
  * Configuración:
  * - 5 intentos por 15 minutos por IP
  * - Mensaje de error personalizado
@@ -20,18 +20,19 @@ const authLimiter = rateLimit({
   max: 5, // máximo 5 intentos por ventana
   message: {
     error: 'Demasiados intentos',
-    message: 'Has excedido el límite de intentos. Por favor, espera 15 minutos antes de intentar nuevamente.'
+    message:
+      'Has excedido el límite de intentos. Por favor, espera 15 minutos antes de intentar nuevamente.',
   },
   standardHeaders: true, // Retorna información de rate limit en headers `RateLimit-*`
   legacyHeaders: false, // Desactiva headers `X-RateLimit-*`
   skipSuccessfulRequests: false, // Contar todos los requests, incluso los exitosos
-  skipFailedRequests: false // Contar también los requests fallidos
+  skipFailedRequests: false, // Contar también los requests fallidos
 });
 
 /**
  * Rate limiter para rutas de salas (moderado)
  * Previene spam en creación/unión de salas
- * 
+ *
  * Configuración:
  * - 20 requests por minuto por IP
  */
@@ -40,17 +41,18 @@ const roomsLimiter = rateLimit({
   max: 20, // máximo 20 requests por minuto
   message: {
     error: 'Demasiadas solicitudes',
-    message: 'Has excedido el límite de solicitudes. Por favor, espera un momento antes de intentar nuevamente.'
+    message:
+      'Has excedido el límite de solicitudes. Por favor, espera un momento antes de intentar nuevamente.',
   },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: false,
-  skipFailedRequests: false
+  skipFailedRequests: false,
 });
 
 /**
  * Rate limiter general para otras rutas API
- * 
+ *
  * Configuración:
  * - 100 requests por 15 minutos por IP
  */
@@ -59,14 +61,14 @@ const generalLimiter = rateLimit({
   max: 100, // máximo 100 requests por ventana
   message: {
     error: 'Demasiadas solicitudes',
-    message: 'Has excedido el límite de solicitudes. Por favor, espera un momento.'
+    message: 'Has excedido el límite de solicitudes. Por favor, espera un momento.',
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 module.exports = {
   authLimiter,
   roomsLimiter,
-  generalLimiter
+  generalLimiter,
 };

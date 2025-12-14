@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "serve": "npx http-server . -p 5500 -o",
-    "dev": "npx http-server . -p 5500 -o"
+    "dev": "npx http-server . -p 5500 -o",
+    "test": "vitest --run",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "keywords": [
     "game",
@@ -18,7 +21,10 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "eslint": "^9.13.0",
+    "http-server": "^14.1.1",
+    "jsdom": "^27.3.0",
+    "prettier": "^3.2.5",
+    "vitest": "^1.6.0"
   }
 }
-

@@ -10,6 +10,15 @@
 - Seguridad (JWT, CORS, rate limiting), DX (lint/tests/CI), persistencia (User/Room en DB), robustez del juego, observabilidad.
 - Sin cambios disruptivos al protocolo WS; mantener compatibilidad de eventos actuales.
 
+## Checklist de Fases
+- [x] Fase 1 — Seguridad y Configuración
+- [ ] Fase 2 — Calidad y DX
+- [ ] Fase 3 — Persistencia Inicial
+- [ ] Fase 4 — Rate Limiting y Sesiones con Redis
+- [ ] Fase 5 — Robustez del Juego
+- [ ] Fase 6 — Mejoras de Frontend
+- [ ] Fase 7 — Observabilidad y CI/CD
+
 ## Fase 1 — Seguridad y Configuración (Semana 1–2)
 - Objetivos:
   - Requerir `JWT_SECRET` y eliminar fallback inseguro.
@@ -17,20 +26,20 @@
   - Añadir rate limiting al namespace `/auth` por WS.
   - Validar y sanitizar nombre de sala en REST.
 - Entregables:
-  - Inicio del servidor falla sin `JWT_SECRET`.
-  - Lista de orígenes permitidos configurable por entorno.
-  - Límite de intentos para `auth:register` y `auth:login` por usuario/IP.
-  - Validación de `room name` en `rooms/create`.
+  - [x] Inicio del servidor falla sin `JWT_SECRET`.
+  - [x] Lista de orígenes permitidos configurable por entorno.
+  - [x] Límite de intentos para `auth:register` y `auth:login` por usuario/IP.
+  - [x] Validación de `room name` en `rooms/create`.
 - Cambios previstos:
   - `backend/utils/jwt.js:9` (eliminar fallback, validar presencia).
   - `backend/server.js:28`, `backend/server.js:45` (alinear CORS/Socket.io origins).
   - `backend/server.js:76` (rate limiting en `/auth` WS).
   - `backend/utils/sanitizer.js:160` (usar en rutas de sala).
 - Criterios de aceptación:
-  - Lanzar sin `.env` válido produce error claro y bloquea el arranque.
-  - Peticiones desde orígenes no permitidos son rechazadas en HTTP/WS.
-  - Exceder límites en `/auth` WS devuelve error consistente y se registra.
-  - `rooms/create` rechaza nombres inválidos con mensaje útil.
+  - [x] Lanzar sin `.env` válido produce error claro y bloquea el arranque.
+  - [x] Peticiones desde orígenes no permitidos son rechazadas en HTTP/WS.
+  - [x] Exceder límites en `/auth` WS devuelve error consistente y se registra.
+  - [x] `rooms/create` rechaza nombres inválidos con mensaje útil.
 - Riesgos y mitigación:
   - Corte por `JWT_SECRET` ausente: documentar `.env.example` y mensajes de arranque.
   - Falsos positivos de CORS: incluir modo desarrollo con comodín solo local.
@@ -41,9 +50,9 @@
   - Definir base de pruebas unitarias para `utils` y pruebas de integración para rutas.
   - Opcional: pre-commit con formateo/linteo.
 - Entregables:
-  - Scripts ejecutables: `npm run lint`, `npm run test`, `npm run format`.
-  - Tests mínimos para `gameLogic`, `sanitizer`, `jwt`.
-  - Integración: `auth` y `rooms`.
+  - [x] Scripts ejecutables: `npm run lint`, `npm run test`, `npm run format`.
+  - [x] Tests mínimos para `gameLogic`, `sanitizer`, `jwt`.
+  - [x] Integración: `auth` y `rooms`.
 - Cambios previstos:
   - `backend/package.json`, `frontend/package.json` (scripts y deps).
   - Carpeta `backend/tests` y `frontend/tests` (estructura base).
