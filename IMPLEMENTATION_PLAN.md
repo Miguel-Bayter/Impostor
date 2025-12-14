@@ -55,13 +55,28 @@
   - [x] Integración: `auth` y `rooms`.
 - Cambios previstos:
   - `backend/package.json`, `frontend/package.json` (scripts y deps).
-  - Carpeta `backend/tests` y `frontend/tests` (estructura base).
+- Checklist de estado:
+  - [x] Scripts definidos en `backend/package.json:9-11` y `frontend/package.json:9-11`.
+  - [x] Unit tests `utils` presentes: `backend/tests/utils/gameLogic.test.mjs`, `backend/tests/utils/sanitizer.test.mjs`, `backend/tests/utils/jwt.test.mjs`.
+  - [x] Tests de integración de rutas: `backend/tests/routes/auth.test.mjs`, `backend/tests/routes/rooms.test.mjs`.
+  - [ ] Lint sin errores en ejecución local/CI.
+  - [ ] Cobertura inicial ≥ 40% en `utils`.
+  - [ ] Tests de rutas pasan con servidor en modo test (verificación de ejecución).
 - Criterios de aceptación:
-  - Lint sin errores en CI local.
-  - Cobertura inicial ≥ 40% en `utils`.
-  - Tests de rutas pasan con servidor en modo test.
+  - [ ] Lint sin errores en CI local.
+  - [ ] Cobertura inicial ≥ 40% en `utils`.
+  - [ ] Tests de rutas pasan con servidor en modo test.
 - Riesgos y mitigación:
   - Falta de framework de test: seleccionar minimalista (p. ej. Vitest/Jest para Node, sin romper estructura).
+ 
+### Cómo completar Fase 2
+- Ejecutar `npm run lint` en `backend` y `frontend` y corregir cualquier error de estilo.
+- Añadir script de cobertura y medir cobertura de `utils`:
+  - Backend: agregar `\"test:coverage\": \"vitest --coverage\"` en `backend/package.json` y ejecutar `npm run test:coverage` apuntando a `backend/tests`.
+  - Frontend: agregar `\"test:coverage\": \"vitest --coverage\"` en `frontend/package.json` si se desea cobertura de utilidades del front.
+- Verificar que los tests de rutas e integración pasan:
+  - Ejecutar `npm run test` en `backend` para `auth` y `rooms`. Asegurar que las pruebas usen `process.env.JWT_SECRET` de test y que los mocks de modelos limpios (`User.clear()`, `Room.clear()`) se ejecuten antes de cada test.
+- Opcional: configurar pre-commit con `lint-staged` para formateo/linteo automático.
 
 ## Fase 3 — Persistencia Inicial (Semana 3–4)
 - Objetivos:

@@ -137,7 +137,9 @@ class Room {
    * @returns {Object} Sala actualizada
    */
   addPlayer(roomId, userId, username, socketId) {
+    console.log(roomId, userId, username, socketId);
     const room = this.roomsById.get(roomId);
+    console.log(room);
 
     if (!room) {
       throw new Error('Sala no encontrada');
