@@ -14,6 +14,7 @@ let currentGameState = null;
 let currentRoom = null;
 let currentPhase = null;
 let currentUser = null;
+let logoutInProgress = false;
 
 // ============================================
 // INICIALIZACIÓN
@@ -29,6 +30,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // Crear instancia del cliente WebSocket
   socketClient = new SocketClient(serverUrl);
 
+  updateSessionUI();
+
   // Configurar callbacks de eventos
   setupSocketCallbacks();
 
@@ -38,18 +41,23 @@ document.addEventListener('DOMContentLoaded', function () {
     .then((connected) => {
       if (connected) {
         currentUser = socketClient.getCurrentUser();
+        updateSessionUI();
         showScreen('rooms');
         loadRooms();
       } else {
+        updateSessionUI();
         showScreen('auth');
       }
     })
     .catch(() => {
+      updateSessionUI();
       showScreen('auth');
     });
 
   // Configurar event listeners de UI
   setupUIEventListeners();
+
+  updateSessionUI();
 });
 
 /**
@@ -143,6 +151,13 @@ function setupUIEventListeners() {
   if (authForm) {
     authForm.addEventListener('submit', handleAuthSubmit);
   }
+
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (target && target.id === 'btn-logout') {
+      handleLogout();
+    }
+  });
 
   const authToggle = document.getElementById('auth-toggle');
   if (authToggle) {
@@ -289,6 +304,7 @@ async function handleAuthSubmit(e) {
     try {
       const result = await socketClient.register(username, email, password);
       currentUser = result.user;
+      updateSessionUI();
       showScreen('rooms');
       loadRooms();
     } catch (error) {
@@ -299,11 +315,79 @@ async function handleAuthSubmit(e) {
     try {
       const result = await socketClient.login(email, password);
       currentUser = result.user;
+      updateSessionUI();
       showScreen('rooms');
       loadRooms();
     } catch (error) {
       showError(error.message || 'Error al iniciar sesión');
     }
+  }
+}
+
+function updateSessionUI() {
+  const topActions = document.getElementById('top-actions');
+  const usernameEl = document.getElementById('current-username');
+
+  const token = localStorage.getItem('impostor_token');
+  const user = currentUser || (socketClient ? socketClient.getCurrentUser() : null);
+
+  if (!topActions) return;
+
+  if ((user && (user.username || user.id)) || token) {
+    if (usernameEl) {
+      usernameEl.textContent = (user && user.username) || 'Sesión activa';
+      usernameEl.title = (user && user.username) || '';
+    }
+    topActions.style.display = 'flex';
+  } else {
+    if (usernameEl) {
+      usernameEl.textContent = '';
+      usernameEl.title = '';
+    }
+    topActions.style.display = 'none';
+  }
+}
+
+function resetLocalState() {
+  currentGameState = null;
+  currentRoom = null;
+  currentPhase = null;
+  currentUser = null;
+}
+
+function handleLogout() {
+  if (logoutInProgress) return;
+
+  const alreadyConfirmed = sessionStorage.getItem('impostor_logout_confirmed') === '1';
+  if (!alreadyConfirmed) {
+    const ok = confirm('¿Cerrar sesión?');
+    if (!ok) return;
+    sessionStorage.setItem('impostor_logout_confirmed', '1');
+  }
+
+  hideError();
+
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = 'Cerrando...';
+  }
+
+  logoutInProgress = true;
+
+  try {
+    if (socketClient) {
+      socketClient.leaveRoom();
+      socketClient.clearAuth();
+      socketClient.disconnect();
+    }
+  } catch (e) {
+  } finally {
+    localStorage.removeItem('impostor_token');
+    resetLocalState();
+    updateSessionUI();
+    showScreen('auth');
+    window.location.reload();
   }
 }
 
