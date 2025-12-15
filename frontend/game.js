@@ -150,6 +150,14 @@ function setupUIEventListeners() {
   const authForm = document.getElementById('auth-form');
   if (authForm) {
     authForm.addEventListener('submit', handleAuthSubmit);
+    authForm.addEventListener(
+      'invalid',
+      (e) => {
+        e.preventDefault();
+        showError('Completa los campos requeridos');
+      },
+      true,
+    );
   }
 
   document.addEventListener('click', (e) => {

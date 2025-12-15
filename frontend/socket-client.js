@@ -44,21 +44,47 @@ class SocketClient {
     }
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const timeoutMs = 10000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try {
+          if (this.authSocket) {
+            this.authSocket.off('connect');
+            this.authSocket.off('connect_error');
+            this.authSocket.disconnect();
+          }
+        } catch (e) {
+        }
+        reject(new Error('No se pudo conectar al servidor de autenticación'));
+      }, timeoutMs);
+
       try {
         this.authSocket = io(`${this.serverUrl}/auth`, {
           transports: ['websocket', 'polling'],
         });
 
         this.authSocket.on('connect', () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
           console.log('[SocketClient] Conectado al namespace de autenticación');
           resolve();
         });
 
         this.authSocket.on('connect_error', (error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
           console.error('[SocketClient] Error de conexión auth:', error);
-          reject(error);
+          reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
         });
       } catch (error) {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeoutId);
+        }
         reject(error);
       }
     });
@@ -80,6 +106,22 @@ class SocketClient {
     }
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const timeoutMs = 10000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try {
+          if (this.socket) {
+            this.socket.off('connect');
+            this.socket.off('connect_error');
+            this.socket.disconnect();
+          }
+        } catch (e) {
+        }
+        reject(new Error('No se pudo conectar al servidor'));
+      }, timeoutMs);
+
       try {
         this.socket = io(this.serverUrl, {
           auth: {
@@ -89,6 +131,9 @@ class SocketClient {
         });
 
         this.socket.on('connect', () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeoutId);
           console.log('[SocketClient] Conectado al servidor principal');
           this.reconnectAttempts = 0;
 
@@ -131,17 +176,28 @@ class SocketClient {
                 message: 'Por favor, inicia sesión nuevamente',
               });
             }
-            reject(error);
+            if (!settled) {
+              settled = true;
+              clearTimeout(timeoutId);
+              reject(error);
+            }
           } else {
+            if (!settled) {
+              settled = true;
+              clearTimeout(timeoutId);
+              reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
+            }
             this.attemptReconnect();
           }
         });
 
         // Configurar listeners de eventos
         this.setupEventListeners();
-
-        resolve();
       } catch (error) {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeoutId);
+        }
         reject(error);
       }
     });
@@ -304,9 +360,21 @@ class SocketClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.authSocket.emit('auth:register', { username, email, password });
+      let settled = false;
+      const timeoutMs = 10000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error('No se recibió respuesta del servidor (registro)'));
+      }, timeoutMs);
 
-      this.authSocket.once('auth:register:success', (data) => {
+      const onSuccess = (data) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        cleanup();
+
         this.userId = data.user.id;
         this.username = data.user.username;
         this.token = data.token;
@@ -317,11 +385,30 @@ class SocketClient {
             resolve(data);
           })
           .catch(reject);
-      });
+      };
 
-      this.authSocket.once('auth:error', (error) => {
-        reject(error);
-      });
+      const onError = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        cleanup();
+        reject(error instanceof Error ? error : new Error(error?.message || 'Error en registro'));
+      };
+
+      const cleanup = () => {
+        try {
+          if (this.authSocket) {
+            this.authSocket.off('auth:register:success', onSuccess);
+            this.authSocket.off('auth:error', onError);
+          }
+        } catch (e) {
+        }
+      };
+
+      this.authSocket.on('auth:register:success', onSuccess);
+      this.authSocket.on('auth:error', onError);
+
+      this.authSocket.emit('auth:register', { username, email, password });
     });
   }
 
@@ -334,9 +421,21 @@ class SocketClient {
     }
 
     return new Promise((resolve, reject) => {
-      this.authSocket.emit('auth:login', { email, password });
+      let settled = false;
+      const timeoutMs = 10000;
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(new Error('No se recibió respuesta del servidor (login)'));
+      }, timeoutMs);
 
-      this.authSocket.once('auth:login:success', (data) => {
+      const onSuccess = (data) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        cleanup();
+
         this.userId = data.user.id;
         this.username = data.user.username;
         this.token = data.token;
@@ -347,11 +446,30 @@ class SocketClient {
             resolve(data);
           })
           .catch(reject);
-      });
+      };
 
-      this.authSocket.once('auth:error', (error) => {
-        reject(error);
-      });
+      const onError = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        cleanup();
+        reject(error instanceof Error ? error : new Error(error?.message || 'Error al iniciar sesión'));
+      };
+
+      const cleanup = () => {
+        try {
+          if (this.authSocket) {
+            this.authSocket.off('auth:login:success', onSuccess);
+            this.authSocket.off('auth:error', onError);
+          }
+        } catch (e) {
+        }
+      };
+
+      this.authSocket.on('auth:login:success', onSuccess);
+      this.authSocket.on('auth:error', onError);
+
+      this.authSocket.emit('auth:login', { email, password });
     });
   }
 
