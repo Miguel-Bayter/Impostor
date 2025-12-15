@@ -41,7 +41,7 @@ function setupRoomHandlers(io) {
      *   roomId: "ABC123"
      * }
      */
-    socket.on('room:join', (data) => {
+    socket.on('room:join', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'room:join');
       if (!rateLimitResult.allowed) {
@@ -63,7 +63,7 @@ function setupRoomHandlers(io) {
         }
 
         // Verificar que la sala existe
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
 
         if (!room) {
           return socket.emit('room:error', {
@@ -94,14 +94,14 @@ function setupRoomHandlers(io) {
         }
 
         // Agregar jugador a la sala
-        Room.addPlayer(roomId, socket.userId, socket.username, socket.id);
+        await Room.addPlayer(roomId, socket.userId, socket.username, socket.id);
 
         // Unirse al room de Socket.io
         socket.join(roomId);
         socket.currentRoomId = roomId;
 
         // Obtener estado actualizado de la sala
-        const updatedRoom = Room.findById(roomId);
+        const updatedRoom = await Room.findById(roomId);
 
         // Confirmar al jugador que se unió
         socket.emit('room:joined', {
@@ -145,7 +145,7 @@ function setupRoomHandlers(io) {
      *   roomId: "ABC123" (opcional, usa la sala actual si no se especifica)
      * }
      */
-    socket.on('room:leave', (data) => {
+    socket.on('room:leave', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'room:leave');
       if (!rateLimitResult.allowed) {
@@ -166,7 +166,7 @@ function setupRoomHandlers(io) {
           });
         }
 
-        handleLeaveRoom(socket, roomId, io);
+        await handleLeaveRoom(socket, roomId, io);
       } catch (error) {
         console.error('[Room] Error al salir de sala:', error);
         socket.emit('room:error', {
@@ -185,7 +185,7 @@ function setupRoomHandlers(io) {
      *   roomId: "ABC123" (opcional, usa la sala actual si no se especifica)
      * }
      */
-    socket.on('room:state', (data) => {
+    socket.on('room:state', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'room:state');
       if (!rateLimitResult.allowed) {
@@ -206,7 +206,7 @@ function setupRoomHandlers(io) {
           });
         }
 
-        const room = Room.findById(roomId);
+        const room = await Room.findById(roomId);
 
         if (!room) {
           return socket.emit('room:error', {
@@ -231,9 +231,9 @@ function setupRoomHandlers(io) {
      * Manejar desconexión
      * Remover jugador de la sala si estaba en una
      */
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       if (socket.currentRoomId) {
-        handleLeaveRoom(socket, socket.currentRoomId, io, true);
+        await handleLeaveRoom(socket, socket.currentRoomId, io, true);
       }
       console.log(`[Room] Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
     });
@@ -247,10 +247,10 @@ function setupRoomHandlers(io) {
  * @param {Object} io - Instancia de Socket.io
  * @param {boolean} isDisconnect - Si es una desconexión (no un leave manual)
  */
-function handleLeaveRoom(socket, roomId, io, isDisconnect = false) {
+async function handleLeaveRoom(socket, roomId, io, isDisconnect = false) {
   try {
     // Verificar que la sala existe
-    const room = Room.getRoomInternal(roomId);
+    const room = await Room.getRoomInternal(roomId);
 
     if (!room) {
       // La sala ya no existe, solo limpiar el socket
@@ -259,13 +259,13 @@ function handleLeaveRoom(socket, roomId, io, isDisconnect = false) {
     }
 
     // Verificar que el jugador está en la sala
-    if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+    if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
       socket.currentRoomId = null;
       return;
     }
 
     // Remover jugador de la sala
-    const updatedRoom = Room.removePlayer(roomId, socket.userId);
+    const updatedRoom = await Room.removePlayer(roomId, socket.userId);
 
     // Salir del room de Socket.io
     socket.leave(roomId);

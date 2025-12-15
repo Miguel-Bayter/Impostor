@@ -7,11 +7,17 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
+const RoomDoc = require('../schemas/Room');
 
 class Room {
   constructor() {
     // Almacenamiento en memoria: Map<roomId, roomObject>
     this.roomsById = new Map();
+  }
+
+  isDbReady() {
+    return mongoose?.connection?.readyState === 1;
   }
 
   /**
@@ -56,7 +62,7 @@ class Room {
    * @param {Object} options - Opciones de configuración
    * @returns {Object} Sala creada
    */
-  create(hostId, hostUsername, options = {}) {
+  async create(hostId, hostUsername, options = {}) {
     // Validar configuración
     const settings = {
       minPlayers: options.minPlayers || 3,
@@ -97,6 +103,23 @@ class Room {
       updatedAt: now,
     };
 
+    if (this.isDbReady()) {
+      const doc = new RoomDoc({
+        _id: roomId,
+        hostId: hostId,
+        name: room.name,
+        status: room.status,
+        maxPlayers: room.maxPlayers,
+        players: room.players,
+        settings: room.settings,
+        createdAt: room.createdAt,
+        updatedAt: room.updatedAt,
+      });
+
+      await doc.save();
+      return this.sanitizeRoom(doc.toObject());
+    }
+
     // Guardar en memoria
     this.roomsById.set(roomId, room);
 
@@ -109,7 +132,13 @@ class Room {
    * @param {string} roomId - ID de la sala
    * @returns {Object|null} Sala encontrada (sanitizada)
    */
-  findById(roomId) {
+  async findById(roomId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId).lean();
+      if (!room) return null;
+      return this.sanitizeRoom(room);
+    }
+
     const room = this.roomsById.get(roomId);
 
     if (!room) {
@@ -124,7 +153,12 @@ class Room {
    * @param {string} roomId - ID de la sala
    * @returns {Object|null} Sala encontrada (sin sanitizar)
    */
-  getRoomInternal(roomId) {
+  async getRoomInternal(roomId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId).lean();
+      return room || null;
+    }
+
     return this.roomsById.get(roomId) || null;
   }
 
@@ -136,10 +170,45 @@ class Room {
    * @param {string} socketId - ID del socket WebSocket
    * @returns {Object} Sala actualizada
    */
-  addPlayer(roomId, userId, username, socketId) {
-    console.log(roomId, userId, username, socketId);
+  async addPlayer(roomId, userId, username, socketId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId);
+
+      if (!room) {
+        throw new Error('Sala no encontrada');
+      }
+
+      if (room.status !== 'waiting') {
+        throw new Error('La sala no está esperando jugadores');
+      }
+
+      if (room.players.length >= room.maxPlayers) {
+        throw new Error('La sala está llena');
+      }
+
+      const existingPlayer = room.players.find((p) => p.userId === userId);
+      if (existingPlayer) {
+        existingPlayer.socketId = socketId;
+        room.updatedAt = new Date().toISOString();
+        await room.save();
+        return this.sanitizeRoom(room.toObject());
+      }
+
+      room.players.push({
+        userId: userId,
+        username: username,
+        socketId: socketId,
+        joinedAt: new Date().toISOString(),
+        isHost: false,
+      });
+
+      room.updatedAt = new Date().toISOString();
+      await room.save();
+
+      return this.sanitizeRoom(room.toObject());
+    }
+
     const room = this.roomsById.get(roomId);
-    console.log(room);
 
     if (!room) {
       throw new Error('Sala no encontrada');
@@ -182,7 +251,28 @@ class Room {
    * @param {string} userId - ID del usuario (UUID)
    * @returns {Object|null} Sala actualizada o null si se eliminó
    */
-  removePlayer(roomId, userId) {
+  async removePlayer(roomId, userId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId);
+      if (!room) return null;
+
+      room.players = room.players.filter((p) => p.userId !== userId);
+
+      if (room.players.length === 0) {
+        await RoomDoc.deleteOne({ _id: roomId });
+        return null;
+      }
+
+      if (room.hostId === userId && room.players.length > 0) {
+        room.hostId = room.players[0].userId;
+        room.players[0].isHost = true;
+      }
+
+      room.updatedAt = new Date().toISOString();
+      await room.save();
+      return this.sanitizeRoom(room.toObject());
+    }
+
     const room = this.roomsById.get(roomId);
 
     if (!room) {
@@ -215,7 +305,20 @@ class Room {
    * @param {string} userId - ID del usuario (UUID)
    * @param {string} socketId - Nuevo socketId
    */
-  updatePlayerSocket(roomId, userId, socketId) {
+  async updatePlayerSocket(roomId, userId, socketId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId);
+      if (!room) return;
+
+      const player = room.players.find((p) => p.userId === userId);
+      if (player) {
+        player.socketId = socketId;
+        room.updatedAt = new Date().toISOString();
+        await room.save();
+      }
+      return;
+    }
+
     const room = this.roomsById.get(roomId);
 
     if (!room) {
@@ -234,16 +337,28 @@ class Room {
    * @param {string} roomId - ID de la sala
    * @param {string} status - Nuevo estado
    */
-  updateStatus(roomId, status) {
+  async updateStatus(roomId, status) {
+    const validStatuses = ['waiting', 'starting', 'in_progress', 'finished'];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`Estado inválido: ${status}`);
+    }
+
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId);
+      if (!room) {
+        throw new Error('Sala no encontrada');
+      }
+
+      room.status = status;
+      room.updatedAt = new Date().toISOString();
+      await room.save();
+      return;
+    }
+
     const room = this.roomsById.get(roomId);
 
     if (!room) {
       throw new Error('Sala no encontrada');
-    }
-
-    const validStatuses = ['waiting', 'starting', 'in_progress', 'finished'];
-    if (!validStatuses.includes(status)) {
-      throw new Error(`Estado inválido: ${status}`);
     }
 
     room.status = status;
@@ -256,7 +371,13 @@ class Room {
    * @param {string} userId - ID del usuario (UUID)
    * @returns {boolean} true si el usuario está en la sala
    */
-  isPlayerInRoom(roomId, userId) {
+  async isPlayerInRoom(roomId, userId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findById(roomId).lean();
+      if (!room) return false;
+      return room.players.some((p) => p.userId === userId);
+    }
+
     const room = this.roomsById.get(roomId);
 
     if (!room) {
@@ -270,7 +391,12 @@ class Room {
    * Obtener todas las salas (útil para debugging)
    * @returns {Array} Lista de salas sanitizadas
    */
-  getAll() {
+  async getAll() {
+    if (this.isDbReady()) {
+      const rooms = await RoomDoc.find({}).lean();
+      return rooms.map((room) => this.sanitizeRoom(room));
+    }
+
     return Array.from(this.roomsById.values()).map((room) => this.sanitizeRoom(room));
   }
 
@@ -278,7 +404,14 @@ class Room {
    * Obtener salas disponibles (waiting)
    * @returns {Array} Lista de salas en espera
    */
-  getAvailableRooms() {
+  async getAvailableRooms() {
+    if (this.isDbReady()) {
+      const rooms = await RoomDoc.find({ status: 'waiting' }).lean();
+      return rooms
+        .filter((room) => room.players.length < room.maxPlayers)
+        .map((room) => this.sanitizeRoom(room));
+    }
+
     return Array.from(this.roomsById.values())
       .filter((room) => room.status === 'waiting' && room.players.length < room.maxPlayers)
       .map((room) => this.sanitizeRoom(room));
@@ -289,7 +422,12 @@ class Room {
    * @param {string} roomId - ID de la sala
    * @returns {boolean} true si se eliminó, false si no existía
    */
-  delete(roomId) {
+  async delete(roomId) {
+    if (this.isDbReady()) {
+      const res = await RoomDoc.deleteOne({ _id: roomId });
+      return res.deletedCount > 0;
+    }
+
     return this.roomsById.delete(roomId);
   }
 
@@ -324,7 +462,12 @@ class Room {
   /**
    * Limpiar todas las salas (útil para testing)
    */
-  clear() {
+  async clear() {
+    if (this.isDbReady()) {
+      await RoomDoc.deleteMany({});
+      return;
+    }
+
     this.roomsById.clear();
   }
 }

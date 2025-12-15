@@ -7,15 +7,21 @@
  */
 
 const bcrypt = require('bcrypt');
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
+const UserDoc = require('../schemas/User');
 const { sanitizeUsername, sanitizeEmail } = require('../utils/sanitizer');
 
 class User {
   constructor() {
-    // Almacenamiento en memoria: Map<userId, userObject>
+    // Fallback in-memory: Map<userId, userObject>
     this.usersById = new Map();
     // Índice por email para búsquedas rápidas: Map<email, userId>
     this.usersByEmail = new Map();
+  }
+
+  isDbReady() {
+    return mongoose?.connection?.readyState === 1;
   }
 
   /**
@@ -81,6 +87,36 @@ class User {
     const normalizedEmail = sanitizedEmail;
     const normalizedUsername = sanitizedUsername;
 
+    if (this.isDbReady()) {
+      // Verificar duplicados
+      const existingByEmail = await UserDoc.findOne({ email: normalizedEmail }).lean();
+      if (existingByEmail) {
+        throw new Error('El email ya está registrado');
+      }
+
+      const existingByUsername = await UserDoc.findOne({ username: normalizedUsername }).lean();
+      if (existingByUsername) {
+        throw new Error('El nombre de usuario ya está en uso');
+      }
+
+      const doc = new UserDoc({
+        _id: uuidv4(),
+        username: normalizedUsername,
+        email: normalizedEmail,
+        password: password,
+      });
+
+      await doc.save();
+
+      return {
+        id: doc._id,
+        username: doc.username,
+        email: doc.email,
+        createdAt: (doc.createdAt || new Date()).toISOString(),
+      };
+    }
+
+    // Fallback in-memory
     // Verificar que el email no exista
     if (this.usersByEmail.has(normalizedEmail)) {
       throw new Error('El email ya está registrado');
@@ -121,11 +157,24 @@ class User {
    * @param {string} email - Email del usuario
    * @returns {Object|null} Usuario encontrado (con passwordHash para verificación)
    */
-  findByEmail(email) {
+  async findByEmail(email) {
     // Sanitizar email antes de buscar
     const sanitizedEmail = sanitizeEmail(email);
     if (!sanitizedEmail) {
       return null;
+    }
+
+    if (this.isDbReady()) {
+      // Nota: este método se usa para login, necesita incluir el hash
+      // (en DB el campo se llama `password`)
+      const user = await UserDoc.findOne({ email: sanitizedEmail }).select('+password').lean();
+      if (!user) return null;
+
+      return {
+        ...user,
+        id: user._id,
+        passwordHash: user.password,
+      };
     }
 
     const userId = this.usersByEmail.get(sanitizedEmail);
@@ -142,7 +191,19 @@ class User {
    * @param {string} userId - ID del usuario (UUID)
    * @returns {Object|null} Usuario encontrado (sin passwordHash)
    */
-  findById(userId) {
+  async findById(userId) {
+    if (this.isDbReady()) {
+      const user = await UserDoc.findById(userId).lean();
+      if (!user) return null;
+
+      return {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        createdAt: (user.createdAt || new Date()).toISOString?.() || user.createdAt,
+      };
+    }
+
     const user = this.usersById.get(userId);
 
     if (!user) {
@@ -168,7 +229,17 @@ class User {
    * Obtener todos los usuarios (útil para debugging, remover en producción)
    * @returns {Array} Lista de usuarios sin passwordHash
    */
-  getAll() {
+  async getAll() {
+    if (this.isDbReady()) {
+      const users = await UserDoc.find({}).lean();
+      return users.map((u) => ({
+        id: u._id,
+        username: u.username,
+        email: u.email,
+        createdAt: (u.createdAt || new Date()).toISOString?.() || u.createdAt,
+      }));
+    }
+
     return Array.from(this.usersById.values()).map((user) => {
       const { passwordHash: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
@@ -178,7 +249,12 @@ class User {
   /**
    * Limpiar todos los usuarios (útil para testing)
    */
-  clear() {
+  async clear() {
+    if (this.isDbReady()) {
+      await UserDoc.deleteMany({});
+      return;
+    }
+
     this.usersById.clear();
     this.usersByEmail.clear();
   }

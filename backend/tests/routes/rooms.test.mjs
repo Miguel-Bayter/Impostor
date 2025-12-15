@@ -41,8 +41,8 @@ describe('routes/rooms', () => {
   let hostUser;
 
   beforeEach(async () => {
-    User.clear();
-    Room.clear();
+    await User.clear();
+    await Room.clear();
     app = makeApp();
     const reg = await register(app);
     hostToken = reg.token;
@@ -97,7 +97,7 @@ describe('routes/rooms', () => {
     //expect(second).toBe("");
     const token2 = second.body.token;
     const user2 = second.body.user;
-    Room.addPlayer(roomId, user2.id, user2.username, null);
+    await Room.addPlayer(roomId, user2.id, user2.username, null);
 
     const leave = await request(app)
       .post(`/api/rooms/${roomId}/leave`)

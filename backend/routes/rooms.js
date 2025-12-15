@@ -29,7 +29,7 @@ const { sanitizeRoomName } = require('../utils/sanitizer');
  *   "numImpostors": 1 (opcional, default: 1)
  * }
  */
-router.post('/create', authenticateToken, (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   try {
     const { name, minPlayers, maxPlayers, numImpostors } = req.body;
     const userId = req.user.id;
@@ -48,7 +48,7 @@ router.post('/create', authenticateToken, (req, res) => {
     }
 
     // Crear sala
-    const room = Room.create(userId, username, {
+    const room = await Room.create(userId, username, {
       name: sanitizedName,
       minPlayers,
       maxPlayers,
@@ -87,7 +87,7 @@ router.post('/create', authenticateToken, (req, res) => {
  *   "roomId": "ABC123"
  * }
  */
-router.post('/join', authenticateToken, (req, res) => {
+router.post('/join', authenticateToken, async (req, res) => {
   try {
     const { roomId } = req.body;
     const userId = req.user.id;
@@ -100,7 +100,7 @@ router.post('/join', authenticateToken, (req, res) => {
     }
 
     // Verificar que la sala existe
-    const room = Room.findById(roomId);
+    const room = await Room.findById(roomId);
 
     if (!room) {
       return res.status(404).json({
@@ -126,7 +126,7 @@ router.post('/join', authenticateToken, (req, res) => {
     }
 
     // Verificar que el usuario no esté ya en la sala
-    if (Room.isPlayerInRoom(roomId, userId)) {
+    if (await Room.isPlayerInRoom(roomId, userId)) {
       return res.status(400).json({
         error: 'Ya estás en esta sala',
         message: 'No puedes unirte a una sala en la que ya estás',
@@ -156,18 +156,23 @@ router.get('/:roomId', (req, res) => {
   try {
     const { roomId } = req.params;
 
-    const room = Room.findById(roomId);
+    const run = async () => {
+      const room = await Room.findById(roomId);
 
-    if (!room) {
-      return res.status(404).json({
-        error: 'Sala no encontrada',
-        message: 'La sala especificada no existe',
+      if (!room) {
+        return res.status(404).json({
+          error: 'Sala no encontrada',
+          message: 'La sala especificada no existe',
+        });
+      }
+
+      return res.json({
+        room: room,
       });
-    }
+    };
 
-    res.json({
-      room: room,
-    });
+    return run();
+
   } catch (error) {
     console.error('Error al obtener sala:', error);
     res.status(500).json({
@@ -182,9 +187,9 @@ router.get('/:roomId', (req, res) => {
  * Listar salas disponibles
  * No requiere autenticación (público)
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const availableRooms = Room.getAvailableRooms();
+    const availableRooms = await Room.getAvailableRooms();
 
     res.json({
       rooms: availableRooms,
@@ -204,13 +209,13 @@ router.get('/', (req, res) => {
  * Abandonar sala
  * Requiere autenticación
  */
-router.post('/:roomId/leave', authenticateToken, (req, res) => {
+router.post('/:roomId/leave', authenticateToken, async (req, res) => {
   try {
     const { roomId } = req.params;
     const userId = req.user.id;
 
     // Verificar que la sala existe
-    const room = Room.getRoomInternal(roomId);
+    const room = await Room.getRoomInternal(roomId);
 
     if (!room) {
       return res.status(404).json({
@@ -220,7 +225,7 @@ router.post('/:roomId/leave', authenticateToken, (req, res) => {
     }
 
     // Verificar que el usuario está en la sala
-    if (!Room.isPlayerInRoom(roomId, userId)) {
+    if (!(await Room.isPlayerInRoom(roomId, userId))) {
       return res.status(400).json({
         error: 'No estás en esta sala',
         message: 'No puedes abandonar una sala en la que no estás',
@@ -228,7 +233,7 @@ router.post('/:roomId/leave', authenticateToken, (req, res) => {
     }
 
     // Remover jugador
-    const updatedRoom = Room.removePlayer(roomId, userId);
+    const updatedRoom = await Room.removePlayer(roomId, userId);
 
     if (updatedRoom === null) {
       // La sala se eliminó porque quedó vacía

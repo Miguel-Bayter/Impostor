@@ -8,10 +8,11 @@
 
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server: SocketIo } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config();
+const dotenv = require('dotenv');
+const connectDB = require('./db/connection');
 
 // Importar rutas y middleware
 const authRoutes = require('./routes/auth');
@@ -20,6 +21,28 @@ const { authenticateSocket } = require('./middleware/auth');
 const { setupRoomHandlers } = require('./sockets/roomSocket');
 const { setupGameHandlers } = require('./sockets/gameSocket');
 const { authLimiter, roomsLimiter, generalLimiter } = require('./middleware/rateLimiter');
+const { generateToken } = require('./utils/jwt');
+const { checkRateLimit } = require('./utils/socketRateLimiter');
+
+// Importar modelos (compatibilidad con rutas/sockets)
+const User = require('./models/User');
+
+dotenv.config();
+
+// Verificar variables de entorno requeridas
+const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error(`Error: Las siguientes variables de entorno son requeridas: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
+
+// Conectar a MongoDB
+connectDB().catch(err => {
+  console.error('Error al conectar a MongoDB:', err);
+  process.exit(1);
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -29,7 +52,8 @@ const socketIoOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
   : ['http://127.0.0.1:5500', 'http://localhost:5500'];
 
-const io = socketIo(server, {
+// Configuración de Socket.io
+const io = new SocketIo(server, {
   cors: {
     origin: socketIoOrigins,
     methods: ['GET', 'POST'],
@@ -72,9 +96,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Namespace de autenticación (sin middleware, permite registro/login)
 const authNamespace = io.of('/auth');
-const User = require('./models/User');
-const { generateToken } = require('./utils/jwt');
-const { checkRateLimit } = require('./utils/socketRateLimiter');
 
 // Handlers de autenticación por WebSocket
 authNamespace.on('connection', (socket) => {
@@ -171,7 +192,7 @@ authNamespace.on('connection', (socket) => {
       }
 
       // Buscar usuario por email
-      const user = User.findByEmail(email);
+      const user = await User.findByEmail(email);
 
       if (!user) {
         return socket.emit('auth:error', {

@@ -47,7 +47,7 @@ function setupGameHandlers(io) {
      *   roomId: "ABC123"
      * }
      */
-    socket.on('game:start', (data) => {
+    socket.on('game:start', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'game:start');
       if (!rateLimitResult.allowed) {
@@ -69,7 +69,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que la sala existe
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
 
         if (!room) {
           return socket.emit('game:error', {
@@ -79,7 +79,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario está en la sala
-        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
             message: 'Debes estar en la sala para iniciar el juego',
@@ -116,7 +116,7 @@ function setupGameHandlers(io) {
         Game.initGame(roomId, room.players, numImpostors);
 
         // Actualizar estado de la sala
-        Room.updateStatus(roomId, 'in_progress');
+        await Room.updateStatus(roomId, 'in_progress');
 
         // Enviar estado del juego a todos en la sala
         // Cada jugador recibe su versión del estado (con/sin palabra secreta según su rol)
@@ -154,7 +154,7 @@ function setupGameHandlers(io) {
      *   roomId: "ABC123"
      * }
      */
-    socket.on('game:startCluesPhase', (data) => {
+    socket.on('game:startCluesPhase', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'game:startCluesPhase');
       if (!rateLimitResult.allowed) {
@@ -176,7 +176,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que la sala existe
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
         if (!room) {
           return socket.emit('game:error', {
             error: 'Sala no encontrada',
@@ -185,7 +185,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario está en la sala
-        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
             message: 'Debes estar en la sala para iniciar la fase de pistas',
@@ -254,7 +254,7 @@ function setupGameHandlers(io) {
      *   roomId: "ABC123"
      * }
      */
-    socket.on('game:confirmRoles', (data) => {
+    socket.on('game:confirmRoles', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'game:confirmRoles');
       if (!rateLimitResult.allowed) {
@@ -276,7 +276,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario está en la sala
-        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
             message: 'Debes estar en la sala para confirmar tu rol',
@@ -287,7 +287,7 @@ function setupGameHandlers(io) {
         const result = Game.confirmRolesViewed(roomId, socket.userId);
 
         // Enviar estado actualizado a todos los jugadores
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
         if (room) {
           room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
@@ -386,7 +386,7 @@ function setupGameHandlers(io) {
      *   clue: "palabra"
      * }
      */
-    socket.on('game:submitClue', (data) => {
+    socket.on('game:submitClue', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'game:submitClue');
       if (!rateLimitResult.allowed) {
@@ -425,7 +425,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario está en la sala
-        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
             message: 'Debes estar en la sala para enviar pistas',
@@ -445,7 +445,7 @@ function setupGameHandlers(io) {
           });
 
           // Enviar estado actualizado a cada jugador
-          const room = Room.getRoomInternal(roomId);
+          const room = await Room.getRoomInternal(roomId);
           if (room) {
             room.players.forEach((player) => {
               const playerGameState = Game.getGameState(roomId, player.userId);
@@ -476,7 +476,7 @@ function setupGameHandlers(io) {
         });
 
         // Enviar estado actualizado a cada jugador
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
         if (room) {
           room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
@@ -520,7 +520,7 @@ function setupGameHandlers(io) {
      *   votedPlayerId: "user-id-uuid"
      * }
      */
-    socket.on('game:submitVote', (data) => {
+    socket.on('game:submitVote', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'game:submitVote');
       if (!rateLimitResult.allowed) {
@@ -549,7 +549,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario está en la sala
-        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
             message: 'Debes estar en la sala para votar',
@@ -567,7 +567,7 @@ function setupGameHandlers(io) {
         });
 
         // Enviar estado actualizado a cada jugador
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
         if (room) {
           room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
@@ -631,7 +631,7 @@ function setupGameHandlers(io) {
      *   roomId: "ABC123"
      * }
      */
-    socket.on('game:startNewRound', (data) => {
+    socket.on('game:startNewRound', async (data) => {
       // Aplicar rate limiting
       const rateLimitResult = checkRateLimit(socket.userId, 'game:startNewRound');
       if (!rateLimitResult.allowed) {
@@ -653,7 +653,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario está en la sala
-        if (!Room.isPlayerInRoom(roomId, socket.userId)) {
+        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
           return socket.emit('game:error', {
             error: 'No estás en esta sala',
             message: 'Debes estar en la sala para iniciar una nueva ronda',
@@ -661,7 +661,7 @@ function setupGameHandlers(io) {
         }
 
         // Verificar que el usuario es el host
-        const room = Room.getRoomInternal(roomId);
+        const room = await Room.getRoomInternal(roomId);
         if (!room || room.hostId !== socket.userId) {
           return socket.emit('game:error', {
             error: 'Solo el host puede iniciar una nueva ronda',

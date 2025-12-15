@@ -25,12 +25,12 @@ function authenticateToken(req, res, next) {
     });
   }
 
-  try {
+  const run = async () => {
     // Verificar token
     const decoded = verifyToken(token);
 
     // Buscar usuario en la base de datos
-    const user = User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
       return res.status(401).json({
@@ -46,13 +46,15 @@ function authenticateToken(req, res, next) {
       email: user.email,
     };
 
-    next();
-  } catch (error) {
+    return next();
+  };
+
+  run().catch((error) => {
     return res.status(401).json({
       error: 'Token inválido',
       message: error.message,
     });
-  }
+  });
 }
 
 /**
@@ -80,12 +82,12 @@ function authenticateSocket(socket, next) {
     return next(new Error('Token de autenticación requerido'));
   }
 
-  try {
+  const run = async () => {
     // Verificar token
     const decoded = verifyToken(token);
 
     // Verificar que el usuario existe
-    const user = User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
       return next(new Error('Usuario no encontrado'));
@@ -100,10 +102,10 @@ function authenticateSocket(socket, next) {
       email: user.email,
     };
 
-    next();
-  } catch (error) {
-    return next(new Error(`Autenticación fallida: ${error.message}`));
-  }
+    return next();
+  };
+
+  run().catch((error) => next(new Error(`Autenticación fallida: ${error.message}`)));
 }
 
 /**
@@ -120,24 +122,28 @@ function optionalAuth(req, res, next) {
     return next();
   }
 
-  try {
-    const decoded = verifyToken(token);
-    const user = User.findById(decoded.userId);
+  const run = async () => {
+    try {
+      const decoded = verifyToken(token);
+      const user = await User.findById(decoded.userId);
 
-    if (user) {
-      req.user = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      };
-    } else {
+      if (user) {
+        req.user = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        };
+      } else {
+        req.user = null;
+      }
+    } catch (error) {
       req.user = null;
     }
-  } catch (error) {
-    req.user = null;
-  }
 
-  next();
+    next();
+  };
+
+  run();
 }
 
 module.exports = {

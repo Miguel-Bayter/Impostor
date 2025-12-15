@@ -12,8 +12,8 @@
 
 ## Checklist de Fases
 - [x] Fase 1 — Seguridad y Configuración
-- [ ] Fase 2 — Calidad y DX
-- [ ] Fase 3 — Persistencia Inicial
+- [x] Fase 2 — Calidad y DX ✅
+- [ ] Fase 3 — Persistencia Inicial 🚧
 - [ ] Fase 4 — Rate Limiting y Sesiones con Redis
 - [ ] Fase 5 — Robustez del Juego
 - [ ] Fase 6 — Mejoras de Frontend
@@ -44,7 +44,7 @@
   - Corte por `JWT_SECRET` ausente: documentar `.env.example` y mensajes de arranque.
   - Falsos positivos de CORS: incluir modo desarrollo con comodín solo local.
 
-## Fase 2 — Calidad y DX (Semana 1–2, en paralelo)
+## Fase 2 — Calidad y DX (Semana 1–2, en paralelo) ✅
 - Objetivos:
   - Añadir scripts `lint`, `format`, `test` en ambos `package.json`.
   - Definir base de pruebas unitarias para `utils` y pruebas de integración para rutas.
@@ -59,13 +59,13 @@
   - [x] Scripts definidos en `backend/package.json:9-11` y `frontend/package.json:9-11`.
   - [x] Unit tests `utils` presentes: `backend/tests/utils/gameLogic.test.mjs`, `backend/tests/utils/sanitizer.test.mjs`, `backend/tests/utils/jwt.test.mjs`.
   - [x] Tests de integración de rutas: `backend/tests/routes/auth.test.mjs`, `backend/tests/routes/rooms.test.mjs`.
-  - [ ] Lint sin errores en ejecución local/CI.
-  - [ ] Cobertura inicial ≥ 40% en `utils`.
-  - [ ] Tests de rutas pasan con servidor en modo test (verificación de ejecución).
+  - [x] Lint sin errores en ejecución local/CI. ✅
+  - [x] Cobertura inicial ≥ 40% en `utils`. ✅
+  - [x] Tests de rutas pasan con servidor en modo test (verificación de ejecución). ✅
 - Criterios de aceptación:
-  - [ ] Lint sin errores en CI local.
-  - [ ] Cobertura inicial ≥ 40% en `utils`.
-  - [ ] Tests de rutas pasan con servidor en modo test.
+  - [x] Lint sin errores en CI local. ✅
+  - [x] Cobertura inicial ≥ 40% en `utils`. ✅
+  - [x] Tests de rutas pasan con servidor en modo test. ✅
 - Riesgos y mitigación:
   - Falta de framework de test: seleccionar minimalista (p. ej. Vitest/Jest para Node, sin romper estructura).
  
@@ -78,7 +78,7 @@
   - Ejecutar `npm run test` en `backend` para `auth` y `rooms`. Asegurar que las pruebas usen `process.env.JWT_SECRET` de test y que los mocks de modelos limpios (`User.clear()`, `Room.clear()`) se ejecuten antes de cada test.
 - Opcional: configurar pre-commit con `lint-staged` para formateo/linteo automático.
 
-## Fase 3 — Persistencia Inicial (Semana 3–4)
+## Fase 3 — Persistencia Inicial (Semana 3–4) 🚧
 - Objetivos:
   - Migrar `User` y `Room` desde memoria a DB (MongoDB o PostgreSQL).
   - Mantener API/WS actuales; introducir repositorios y capa de acceso a datos.

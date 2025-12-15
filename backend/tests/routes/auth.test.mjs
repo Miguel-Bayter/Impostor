@@ -14,8 +14,8 @@ function makeApp() {
 }
 
 describe('routes/auth', () => {
-  beforeEach(() => {
-    User.clear();
+  beforeEach(async () => {
+    await User.clear();
   });
 
   it('register crea usuario y token', async () => {

@@ -125,7 +125,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Buscar usuario por email (usar email sanitizado)
-    const user = User.findByEmail(sanitizedEmail);
+    const user = await User.findByEmail(sanitizedEmail);
 
     if (!user) {
       return res.status(401).json({
@@ -203,23 +203,28 @@ router.post('/verify', (req, res) => {
     const decoded = verifyToken(token);
 
     // Verificar que el usuario existe
-    const user = User.findById(decoded.userId);
+    const verify = async () => {
+      const user = await User.findById(decoded.userId);
 
-    if (!user) {
-      return res.status(401).json({
-        valid: false,
-        error: 'Usuario no encontrado',
+      if (!user) {
+        return res.status(401).json({
+          valid: false,
+          error: 'Usuario no encontrado',
+        });
+      }
+
+      return res.json({
+        valid: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
       });
-    }
+    };
 
-    res.json({
-      valid: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      },
-    });
+    return verify();
+
   } catch (error) {
     res.status(401).json({
       valid: false,
