@@ -14,7 +14,7 @@
 - [x] Fase 1 — Seguridad y Configuración
 - [x] Fase 2 — Calidad y DX ✅
 - [ ] Fase 3 — Persistencia Inicial 🚧
-- [ ] Fase 4 — Rate Limiting y Sesiones con Redis
+- [x] Fase 4 — Rate Limiting y Sesiones con Redis
 - [ ] Fase 5 — Robustez del Juego
 - [ ] Fase 6 — Mejoras de Frontend
 - [ ] Fase 7 — Observabilidad y CI/CD

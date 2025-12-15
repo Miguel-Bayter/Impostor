@@ -6,12 +6,19 @@
  * Fase 4: Lógica del Juego
  */
 
+
+const path = require('path');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
 const express = require('express');
 const http = require('http');
 const { Server: SocketIo } = require('socket.io');
 const cors = require('cors');
-const path = require('path');
-const dotenv = require('dotenv');
+const session = require('express-session');
+const { RedisStore } = require('connect-redis');
+const redisClient = require('./db/redis');
 const connectDB = require('./db/connection');
 
 // Importar rutas y middleware
@@ -19,7 +26,9 @@ const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const { authenticateSocket } = require('./middleware/auth');
 const { setupRoomHandlers } = require('./sockets/roomSocket');
+
 const { setupGameHandlers } = require('./sockets/gameSocket');
+const { sessionSocket } = require('./sockets/sessionSocket');
 const { authLimiter, roomsLimiter, generalLimiter } = require('./middleware/rateLimiter');
 const { generateToken } = require('./utils/jwt');
 const { checkRateLimit } = require('./utils/socketRateLimiter');
@@ -27,10 +36,8 @@ const { checkRateLimit } = require('./utils/socketRateLimiter');
 // Importar modelos (compatibilidad con rutas/sockets)
 const User = require('./models/User');
 
-dotenv.config();
-
 // Verificar variables de entorno requeridas
-const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI', 'REDIS_URL'];
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingVars.length > 0) {
@@ -87,6 +94,24 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const sessionMiddleware = session({
+    store: new RedisStore({ client: redisClient }),
+    secret: process.env.SESSION_SECRET || 'supersecret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    },
+  });
+
+app.use(sessionMiddleware);
+io.use((socket, next) => {
+    sessionMiddleware(socket.request, {}, next);
+});
+
+
 // Servir archivos estáticos del frontend (opcional - el frontend puede correr independientemente)
 // Descomentar si quieres servir el frontend desde el backend:
 // app.use(express.static(path.join(__dirname, '../frontend')));
@@ -114,7 +139,7 @@ authNamespace.on('connection', (socket) => {
    */
   socket.on('auth:register', async (data) => {
     const rateKey = socket.userId || socket.handshake?.address || socket.id;
-    const rateLimitResult = checkRateLimit(rateKey, 'auth:register');
+    const rateLimitResult = await checkRateLimit(rateKey, 'auth:register');
     if (!rateLimitResult.allowed) {
       return socket.emit('auth:error', {
         error: 'Demasiados intentos',
@@ -173,7 +198,7 @@ authNamespace.on('connection', (socket) => {
    */
   socket.on('auth:login', async (data) => {
     const rateKey = socket.userId || socket.handshake?.address || socket.id;
-    const rateLimitResult = checkRateLimit(rateKey, 'auth:login');
+    const rateLimitResult = await checkRateLimit(rateKey, 'auth:login');
     if (!rateLimitResult.allowed) {
       return socket.emit('auth:error', {
         error: 'Demasiados intentos',
@@ -242,6 +267,7 @@ authNamespace.on('connection', (socket) => {
 // Aplicar middleware de autenticación a WebSockets
 // Esto valida el token antes de permitir la conexión
 io.use(authenticateSocket);
+io.use(sessionSocket);
 
 // Configurar handlers de WebSocket para salas
 setupRoomHandlers(io);
