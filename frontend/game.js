@@ -20,10 +20,7 @@ let logoutInProgress = false;
 // INICIALIZACIÓN
 // ============================================
 
-/**
- * Inicializa la aplicación cuando el DOM está listo
- */
-document.addEventListener('DOMContentLoaded', function () {
+function initApp() {
   // Obtener URL del servidor (puede venir de variable de entorno o usar default)
   const serverUrl = window.SERVER_URL || 'http://localhost:3000';
 
@@ -42,23 +39,59 @@ document.addEventListener('DOMContentLoaded', function () {
       if (connected) {
         currentUser = socketClient.getCurrentUser();
         updateSessionUI();
-        showScreen('rooms');
-        loadRooms();
+        const currentRoomId = socketClient.getCurrentRoomId();
+        if (currentRoomId) {
+          showScreen('room-waiting');
+          socketClient.getRoomState();
+        } else {
+          showScreen('rooms');
+          loadRooms();
+        }
       } else {
+        const token = localStorage.getItem('impostor_token');
+        const currentRoomId = socketClient.getCurrentRoomId();
         updateSessionUI();
-        showScreen('auth');
+
+        // Si aún existe token, no mandar a login por fallos transitorios: esperar reconexión.
+        if (token) {
+          if (currentRoomId) {
+            showScreen('room-waiting');
+          } else {
+            showScreen('rooms');
+          }
+        } else {
+          showScreen('auth');
+        }
       }
     })
     .catch(() => {
+      const token = localStorage.getItem('impostor_token');
+      const currentRoomId = socketClient.getCurrentRoomId();
       updateSessionUI();
-      showScreen('auth');
+
+      if (token) {
+        if (currentRoomId) {
+          showScreen('room-waiting');
+        } else {
+          showScreen('rooms');
+        }
+      } else {
+        showScreen('auth');
+      }
     });
 
   // Configurar event listeners de UI
   setupUIEventListeners();
 
   updateSessionUI();
-});
+
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 /**
  * Configurar callbacks para eventos del WebSocket
@@ -68,6 +101,22 @@ function setupSocketCallbacks() {
   socketClient.on('connect', () => {
     console.log('[Game] Conectado al servidor');
     hideError();
+
+    if (!currentUser) {
+      const user = socketClient.getCurrentUser();
+      if (user && (user.id || user.username)) {
+        currentUser = user;
+        updateSessionUI();
+        const currentRoomId = socketClient.getCurrentRoomId();
+        if (currentRoomId) {
+          showScreen('room-waiting');
+          socketClient.getRoomState();
+        } else {
+          showScreen('rooms');
+          loadRooms();
+        }
+      }
+    }
   });
 
   socketClient.on('disconnect', (reason) => {
@@ -84,6 +133,19 @@ function setupSocketCallbacks() {
   socketClient.on('roomState', (room) => {
     currentRoom = room;
     updateRoomUI(room);
+
+    if (room) {
+      showScreen('room-waiting');
+    }
+  });
+
+  socketClient.on('roomClosed', (data) => {
+    currentRoom = null;
+    currentGameState = null;
+    currentPhase = null;
+    showError(data?.message || 'cierre de sala por inactividad');
+    showScreen('rooms');
+    loadRooms();
   });
 
   socketClient.on('playerJoined', (data) => {
@@ -336,12 +398,11 @@ function updateSessionUI() {
   const topActions = document.getElementById('top-actions');
   const usernameEl = document.getElementById('current-username');
 
-  const token = localStorage.getItem('impostor_token');
   const user = currentUser || (socketClient ? socketClient.getCurrentUser() : null);
 
   if (!topActions) return;
 
-  if ((user && (user.username || user.id)) || token) {
+  if (user && (user.username || user.id)) {
     if (usernameEl) {
       usernameEl.textContent = (user && user.username) || 'Sesión activa';
       usernameEl.title = (user && user.username) || '';

@@ -35,6 +35,7 @@ const { checkRateLimit } = require('./utils/socketRateLimiter');
 
 // Importar modelos (compatibilidad con rutas/sockets)
 const User = require('./models/User');
+const Room = require('./models/Room');
 
 // Verificar variables de entorno requeridas
 const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI', 'REDIS_URL'];
@@ -57,7 +58,7 @@ const server = http.createServer(app);
 // Configuración de Socket.io con CORS dinámico
 const socketIoOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
-  : ['http://127.0.0.1:5500', 'http://localhost:5500'];
+  : ['http://127.0.0.1:5500', 'http://localhost:5500', 'null'];
 
 // Configuración de Socket.io
 const io = new SocketIo(server, {
@@ -75,6 +76,10 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requests sin origin (mobile apps, Postman, etc.) en desarrollo
     if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    // Permitir Origin "null" en desarrollo (por ejemplo frontend servido desde file://)
+    if (origin === 'null' && process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     // Permitir si el origin está en la lista o si es desarrollo
@@ -275,6 +280,47 @@ setupRoomHandlers(io);
 // Configurar handlers de WebSocket para juego
 setupGameHandlers(io);
 
+// Cierre automático de salas por inactividad (15 min sin iniciar juego)
+const ROOM_INACTIVITY_MS = 15 * 60 * 1000;
+
+async function closeInactiveRooms() {
+  try {
+    const rooms = await Room.getAll();
+    const now = Date.now();
+
+    const candidates = rooms.filter((r) => r && r.status === 'waiting');
+
+    for (const room of candidates) {
+      const lastActivityMs = Date.parse(room.updatedAt || room.createdAt || 0);
+      if (!lastActivityMs || Number.isNaN(lastActivityMs)) continue;
+
+      const inactiveFor = now - lastActivityMs;
+      if (inactiveFor < ROOM_INACTIVITY_MS) continue;
+
+      const reason = 'cierre de sala por inactividad';
+
+      io.to(room.id).emit('room:closed', {
+        roomId: room.id,
+        reason: reason,
+        message: reason,
+      });
+
+      // Sacar a todos los sockets del room para evitar que sigan recibiendo broadcasts
+      try {
+        await io.in(room.id).socketsLeave(room.id);
+      } catch (e) {
+      }
+
+      await Room.delete(room.id);
+      console.log(`[Room] Sala ${room.id} eliminada (${reason})`);
+    }
+  } catch (error) {
+    console.error('[Room] Error en cierre por inactividad:', error);
+  }
+}
+
+setInterval(closeInactiveRooms, 60 * 1000);
+
 // WebSocket connection (solo se ejecuta si la autenticación es exitosa)
 io.on('connection', (socket) => {
   console.log(
@@ -298,7 +344,7 @@ io.on('connection', (socket) => {
 
 // Rutas API con rate limiting
 // Aplicar rate limiting estricto a autenticación
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 // Aplicar rate limiting moderado a salas
 app.use('/api/rooms', roomsLimiter, roomRoutes);
 // Aplicar rate limiting general a otras rutas

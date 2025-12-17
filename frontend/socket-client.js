@@ -10,7 +10,8 @@ class SocketClient {
     this.serverUrl = serverUrl;
     this.authSocket = null;
     this.socket = null;
-    this.currentRoomId = null;
+    this.currentRoomId =
+      typeof localStorage !== 'undefined' ? localStorage.getItem('impostor_room_id') : null;
     this.userId = null;
     this.username = null;
     this.token = null;
@@ -24,6 +25,7 @@ class SocketClient {
       onDisconnect: null,
       onError: null,
       onRoomState: null,
+      onRoomClosed: null,
       onPlayerJoined: null,
       onPlayerLeft: null,
       onGameState: null,
@@ -167,28 +169,88 @@ class SocketClient {
         this.socket.on('connect_error', (error) => {
           console.error('[SocketClient] Error de conexión:', error);
 
-          if (error.message === 'Token inválido' || error.message === 'Token requerido') {
-            // Token inválido, limpiar y requerir re-autenticación
-            this.clearAuth();
-            if (this.callbacks.onError) {
-              this.callbacks.onError({
-                error: 'Sesión expirada',
-                message: 'Por favor, inicia sesión nuevamente',
-              });
+          const msg = error?.message || '';
+          const looksAuthFailure =
+            msg === 'Token inválido' ||
+            msg === 'Token requerido' ||
+            msg === 'Token de autenticación requerido' ||
+            msg.startsWith('Autenticación fallida:') ||
+            msg.toLowerCase().includes('token');
+
+          if (looksAuthFailure) {
+            const storedToken = localStorage.getItem('impostor_token');
+
+            if (!storedToken) {
+              this.clearAuth(true);
+              if (this.callbacks.onError) {
+                this.callbacks.onError({
+                  error: 'Sesión expirada',
+                  message: 'Por favor, inicia sesión nuevamente',
+                });
+              }
+              if (!settled) {
+                settled = true;
+                clearTimeout(timeoutId);
+                reject(error);
+              }
+              return;
             }
-            if (!settled) {
-              settled = true;
-              clearTimeout(timeoutId);
-              reject(error);
-            }
-          } else {
-            if (!settled) {
-              settled = true;
-              clearTimeout(timeoutId);
-              reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
-            }
-            this.attemptReconnect();
+
+            (async () => {
+              let tokenIsInvalid = false;
+              try {
+                const resp = await fetch(`${this.serverUrl}/api/auth/verify`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ token: storedToken }),
+                });
+
+                const data = await resp.json().catch(() => null);
+                const errText = (data && (data.error || data.message) ? String(data.error || data.message) : '').toLowerCase();
+                if (
+                  (data && data.valid === false && errText.includes('token inválido')) ||
+                  (data && data.valid === false && errText.includes('token expirado'))
+                ) {
+                  tokenIsInvalid = true;
+                }
+              } catch (e) {
+                tokenIsInvalid = false;
+              }
+
+              if (tokenIsInvalid) {
+                this.clearAuth(true);
+                if (this.callbacks.onError) {
+                  this.callbacks.onError({
+                    error: 'Sesión expirada',
+                    message: 'Por favor, inicia sesión nuevamente',
+                  });
+                }
+                if (!settled) {
+                  settled = true;
+                  clearTimeout(timeoutId);
+                  reject(error);
+                }
+                return;
+              }
+
+              if (!settled) {
+                settled = true;
+                clearTimeout(timeoutId);
+                reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
+              }
+              this.attemptReconnect();
+            })();
+            return;
           }
+
+          if (!settled) {
+            settled = true;
+            clearTimeout(timeoutId);
+            reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
+          }
+          this.attemptReconnect();
         });
 
         // Configurar listeners de eventos
@@ -220,8 +282,29 @@ class SocketClient {
     this.socket.on('room:left', (data) => {
       console.log('[SocketClient] Salido de sala:', data);
       this.currentRoomId = null;
+      try {
+        localStorage.removeItem('impostor_room_id');
+      } catch (e) {
+      }
       if (this.callbacks.onRoomState) {
         this.callbacks.onRoomState(data.room);
+      }
+    });
+
+    this.socket.on('room:closed', (data) => {
+      console.log('[SocketClient] Sala cerrada:', data);
+      this.currentRoomId = null;
+      try {
+        localStorage.removeItem('impostor_room_id');
+      } catch (e) {
+      }
+
+      if (this.callbacks.onRoomClosed) {
+        this.callbacks.onRoomClosed(data);
+      }
+
+      if (this.callbacks.onRoomState) {
+        this.callbacks.onRoomState(null);
       }
     });
 
@@ -480,29 +563,87 @@ class SocketClient {
     const storedToken = localStorage.getItem('impostor_token');
     if (storedToken) {
       try {
-        // Verificar token con el servidor
-        const response = await fetch(`${this.serverUrl}/api/auth/verify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ token: storedToken }),
-        });
+        // Primero, validar token conectando al WebSocket (es la fuente de verdad para la sesión)
+        await this.connectMain(storedToken);
+        this.token = storedToken;
 
-        const data = await response.json();
+        // Luego, intentar obtener el usuario (si falla por CORS/red, igual mantenemos sesión)
+        try {
+          const response = await fetch(`${this.serverUrl}/api/auth/me`, {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
+            },
+          });
 
-        if (data.valid) {
-          this.userId = data.user.id;
-          this.username = data.user.username;
-          this.token = storedToken;
-          await this.connectMain(storedToken);
-          return true;
-        } else {
-          localStorage.removeItem('impostor_token');
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.user) {
+              this.userId = data.user.id;
+              this.username = data.user.username;
+            }
+          }
+        } catch (e) {
         }
+
+        return true;
       } catch (error) {
-        console.error('[SocketClient] Error al verificar token:', error);
-        localStorage.removeItem('impostor_token');
+        console.error('[SocketClient] Error al reconectar con token guardado:', error);
+        // Si hay un fallo transitorio, Socket.IO puede reconectar automáticamente.
+        // Esperar un poco y, si conecta, tratar la sesión como restaurada.
+        try {
+          await new Promise((resolve, reject) => {
+            const timeoutMs = 7000;
+            if (this.socket && this.socket.connected) return resolve();
+
+            const timeoutId = setTimeout(() => {
+              cleanup();
+              reject(new Error('Timeout esperando reconexión'));
+            }, timeoutMs);
+
+            const onConnect = () => {
+              cleanup();
+              resolve();
+            };
+
+            const cleanup = () => {
+              clearTimeout(timeoutId);
+              try {
+                if (this.socket) this.socket.off('connect', onConnect);
+              } catch (e) {
+              }
+            };
+
+            try {
+              if (this.socket) this.socket.on('connect', onConnect);
+            } catch (e) {
+              cleanup();
+              reject(e);
+            }
+          });
+
+          this.token = storedToken;
+          try {
+            const response = await fetch(`${this.serverUrl}/api/auth/me`, {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${storedToken}`,
+              },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data?.user) {
+                this.userId = data.user.id;
+                this.username = data.user.username;
+              }
+            }
+          } catch (e) {
+          }
+
+          return true;
+        } catch (e) {
+        }
       }
     }
     return false;
@@ -511,12 +652,22 @@ class SocketClient {
   /**
    * Limpiar autenticación
    */
-  clearAuth() {
+  clearAuth(removeStorage = true) {
     this.token = null;
     this.userId = null;
     this.username = null;
-    this.currentRoomId = null;
-    localStorage.removeItem('impostor_token');
+
+    if (removeStorage) {
+      this.currentRoomId = null;
+      try {
+        localStorage.removeItem('impostor_room_id');
+      } catch (e) {
+      }
+      try {
+        localStorage.removeItem('impostor_token');
+      } catch (e) {
+      }
+    }
     this.disconnectMain();
   }
 
@@ -557,6 +708,10 @@ class SocketClient {
     }
 
     this.currentRoomId = roomId;
+    try {
+      localStorage.setItem('impostor_room_id', roomId);
+    } catch (e) {
+    }
     this.socket.emit('room:join', { roomId });
   }
 
@@ -571,6 +726,10 @@ class SocketClient {
     if (this.currentRoomId) {
       this.socket.emit('room:leave', { roomId: this.currentRoomId });
       this.currentRoomId = null;
+      try {
+        localStorage.removeItem('impostor_room_id');
+      } catch (e) {
+      }
     }
   }
 

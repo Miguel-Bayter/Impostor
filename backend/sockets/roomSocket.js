@@ -263,7 +263,7 @@ function setupRoomHandlers(io) {
      */
     socket.on('disconnect', async () => {
       if (socket.currentRoomId) {
-        await handleLeaveRoom(socket, socket.currentRoomId, io, true);
+        await Room.updatePlayerSocket(socket.currentRoomId, socket.userId, null);
       }
       console.log(`[Room] Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
     });

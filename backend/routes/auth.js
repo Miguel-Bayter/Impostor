@@ -13,6 +13,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
 const { authenticateToken } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 const { sanitizeUsername, sanitizeEmail } = require('../utils/sanitizer');
 
 /**
@@ -26,7 +27,7 @@ const { sanitizeUsername, sanitizeEmail } = require('../utils/sanitizer');
  *   "password": "contraseña123"
  * }
  */
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -102,7 +103,7 @@ router.post('/register', async (req, res) => {
  *   "password": "contraseña123"
  * }
  */
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
