@@ -43,7 +43,7 @@ function setupRoomHandlers(io) {
      */
     socket.on('room:join', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'room:join');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'room:join');
       if (!rateLimitResult.allowed) {
         return socket.emit('room:error', {
           error: 'Rate limit excedido',
@@ -70,6 +70,36 @@ function setupRoomHandlers(io) {
             error: 'Sala no encontrada',
             message: 'La sala especificada no existe',
           });
+        }
+
+        // Si el usuario ya está en la sala, permitir reconexión
+        // (por ejemplo tras refrescar la página y perder el socket previo)
+        if (await Room.isPlayerInRoom(roomId, socket.userId)) {
+          // Si ya está en otra sala, salir primero
+          if (socket.currentRoomId && socket.currentRoomId !== roomId) {
+            await handleLeaveRoom(socket, socket.currentRoomId, io);
+          }
+
+          await Room.updatePlayerSocket(roomId, socket.userId, socket.id);
+
+          socket.join(roomId);
+          socket.currentRoomId = roomId;
+
+          const updatedRoom = await Room.findById(roomId);
+
+          socket.emit('room:joined', {
+            message: 'Te has unido a la sala',
+            room: updatedRoom,
+          });
+
+          io.to(roomId).emit('room:state', {
+            room: updatedRoom,
+          });
+
+          console.log(
+            `[Room] Usuario ${socket.username} (${socket.userId}) se reconectó a la sala ${roomId}`,
+          );
+          return;
         }
 
         // Verificar que no esté llena
@@ -147,7 +177,7 @@ function setupRoomHandlers(io) {
      */
     socket.on('room:leave', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'room:leave');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'room:leave');
       if (!rateLimitResult.allowed) {
         return socket.emit('room:error', {
           error: 'Rate limit excedido',
@@ -187,7 +217,7 @@ function setupRoomHandlers(io) {
      */
     socket.on('room:state', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'room:state');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'room:state');
       if (!rateLimitResult.allowed) {
         return socket.emit('room:error', {
           error: 'Rate limit excedido',

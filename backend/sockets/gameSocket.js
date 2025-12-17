@@ -49,7 +49,7 @@ function setupGameHandlers(io) {
      */
     socket.on('game:start', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:start');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:start');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
@@ -156,7 +156,7 @@ function setupGameHandlers(io) {
      */
     socket.on('game:startCluesPhase', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:startCluesPhase');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:startCluesPhase');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
@@ -256,7 +256,7 @@ function setupGameHandlers(io) {
      */
     socket.on('game:confirmRoles', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:confirmRoles');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:confirmRoles');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
@@ -332,9 +332,9 @@ function setupGameHandlers(io) {
      *   roomId: "ABC123" (opcional, usa la sala actual si no se especifica)
      * }
      */
-    socket.on('game:getState', (data) => {
+    socket.on('game:getState', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:getState');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:getState');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
@@ -388,7 +388,7 @@ function setupGameHandlers(io) {
      */
     socket.on('game:submitClue', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:submitClue');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:submitClue');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
@@ -522,7 +522,7 @@ function setupGameHandlers(io) {
      */
     socket.on('game:submitVote', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:submitVote');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:submitVote');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',
@@ -633,7 +633,7 @@ function setupGameHandlers(io) {
      */
     socket.on('game:startNewRound', async (data) => {
       // Aplicar rate limiting
-      const rateLimitResult = checkRateLimit(socket.userId, 'game:startNewRound');
+      const rateLimitResult = await checkRateLimit(socket.userId, 'game:startNewRound');
       if (!rateLimitResult.allowed) {
         return socket.emit('game:error', {
           error: 'Rate limit excedido',

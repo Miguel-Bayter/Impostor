@@ -109,6 +109,15 @@ router.post('/join', authenticateToken, async (req, res) => {
       });
     }
 
+    // Si el usuario ya está en la sala, permitir reconexión
+    // (por ejemplo tras refrescar la página y perder el socket previo)
+    if (await Room.isPlayerInRoom(roomId, userId)) {
+      return res.json({
+        message: 'Reconexión a sala exitosa',
+        room: room,
+      });
+    }
+
     // Verificar que no esté llena
     if (room.players.length >= room.maxPlayers) {
       return res.status(400).json({
@@ -122,14 +131,6 @@ router.post('/join', authenticateToken, async (req, res) => {
       return res.status(400).json({
         error: 'Sala no disponible',
         message: 'La sala no está esperando jugadores',
-      });
-    }
-
-    // Verificar que el usuario no esté ya en la sala
-    if (await Room.isPlayerInRoom(roomId, userId)) {
-      return res.status(400).json({
-        error: 'Ya estás en esta sala',
-        message: 'No puedes unirte a una sala en la que ya estás',
       });
     }
 

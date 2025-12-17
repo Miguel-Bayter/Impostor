@@ -439,7 +439,7 @@ class Room {
   sanitizeRoom(room) {
     // Crear copia sin modificar el original
     const sanitized = {
-      id: room.id,
+      id: room.id || room._id,
       hostId: room.hostId,
       name: room.name,
       status: room.status,
