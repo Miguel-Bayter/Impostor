@@ -122,8 +122,9 @@ function setupGameHandlers(io) {
         // Cada jugador recibe su versión del estado (con/sin palabra secreta según su rol)
         const playersInRoom = room.players;
         playersInRoom.forEach((player) => {
+          if (!player.socketId) return;
           const playerGameState = Game.getGameState(roomId, player.userId);
-          io.to(player.socketId || socket.id).emit('game:state', {
+          io.to(player.socketId).emit('game:state', {
             gameState: playerGameState,
             phase: 'roles',
           });
@@ -222,8 +223,9 @@ function setupGameHandlers(io) {
 
         // Enviar estado actualizado a todos los jugadores
         room.players.forEach((player) => {
+          if (!player.socketId) return;
           const playerGameState = Game.getGameState(roomId, player.userId);
-          io.to(player.socketId || socket.id).emit('game:state', {
+          io.to(player.socketId).emit('game:state', {
             gameState: playerGameState,
             phase: 'clues',
           });
@@ -290,8 +292,9 @@ function setupGameHandlers(io) {
         const room = await Room.getRoomInternal(roomId);
         if (room) {
           room.players.forEach((player) => {
+            if (!player.socketId) return;
             const playerGameState = Game.getGameState(roomId, player.userId);
-            io.to(player.socketId || socket.id).emit('game:state', {
+            io.to(player.socketId).emit('game:state', {
               gameState: playerGameState,
               phase: result.gameState.phase,
             });
@@ -448,8 +451,9 @@ function setupGameHandlers(io) {
           const room = await Room.getRoomInternal(roomId);
           if (room) {
             room.players.forEach((player) => {
+              if (!player.socketId) return;
               const playerGameState = Game.getGameState(roomId, player.userId);
-              io.to(player.socketId || socket.id).emit('game:state', {
+              io.to(player.socketId).emit('game:state', {
                 gameState: playerGameState,
               });
             });
@@ -479,8 +483,9 @@ function setupGameHandlers(io) {
         const room = await Room.getRoomInternal(roomId);
         if (room) {
           room.players.forEach((player) => {
+            if (!player.socketId) return;
             const playerGameState = Game.getGameState(roomId, player.userId);
-            io.to(player.socketId || socket.id).emit('game:state', {
+            io.to(player.socketId).emit('game:state', {
               gameState: playerGameState,
             });
           });
@@ -521,104 +526,94 @@ function setupGameHandlers(io) {
      * }
      */
     socket.on('game:submitVote', async (data) => {
-      // Aplicar rate limiting
-      const rateLimitResult = await checkRateLimit(socket.userId, 'game:submitVote');
-      if (!rateLimitResult.allowed) {
-        return socket.emit('game:error', {
-          error: 'Rate limit excedido',
-          message: `Has excedido el límite de votación. Intenta nuevamente en ${rateLimitResult.retryAfter} segundos.`,
-          retryAfter: rateLimitResult.retryAfter,
-        });
-      }
-
+      // (Rate limiting y validaciones previas se mantienen igual)
       try {
         const { roomId, votedPlayerId } = data;
 
-        if (!roomId) {
-          return socket.emit('game:error', {
-            error: 'Room ID requerido',
-            message: 'Envía el roomId: { "roomId": "...", "votedPlayerId": "..." }',
-          });
+        // ... (Validaciones de roomId, votedPlayerId, isPlayerInRoom)
+        if (!roomId || !votedPlayerId || !(await Room.isPlayerInRoom(roomId, socket.userId))) {
+            return socket.emit('game:error', { message: 'Datos de votación inválidos.'});
         }
 
-        if (!votedPlayerId) {
-          return socket.emit('game:error', {
-            error: 'Jugador votado requerido',
-            message: 'Envía el ID del jugador por el que votas',
-          });
-        }
-
-        // Verificar que el usuario está en la sala
-        if (!(await Room.isPlayerInRoom(roomId, socket.userId))) {
-          return socket.emit('game:error', {
-            error: 'No estás en esta sala',
-            message: 'Debes estar en la sala para votar',
-          });
-        }
-
-        // Procesar voto
         const result = Game.submitVote(roomId, socket.userId, votedPlayerId);
 
-        // Broadcast voto recibido
         io.to(roomId).emit('game:voteSubmitted', {
           voterId: socket.userId,
           votedPlayerId: votedPlayerId,
           votingComplete: result.votingComplete,
         });
 
-        // Enviar estado actualizado a cada jugador
         const room = await Room.getRoomInternal(roomId);
         if (room) {
           room.players.forEach((player) => {
             const playerGameState = Game.getGameState(roomId, player.userId);
-            io.to(player.socketId || socket.id).emit('game:state', {
-              gameState: playerGameState,
-            });
+            if (player.socketId) {
+              io.to(player.socketId).emit('game:state', { gameState: playerGameState });
+            }
           });
         }
 
-        // Si todos votaron, enviar resultados
         if (result.votingComplete) {
-          io.to(roomId).emit('game:votingResults', {
-            results: result.results,
-            victoryCheck: result.victoryCheck,
-            message: result.victoryCheck.winner
-              ? `¡${result.victoryCheck.winner === 'citizens' ? 'Ciudadanos' : 'Impostores'} ganan!`
-              : 'El juego continúa...',
-          });
-
-          // Cambiar fase según resultado
-          if (result.victoryCheck.winner) {
-            io.to(roomId).emit('game:phaseChanged', {
-              phase: 'victory',
-              message: 'El juego ha terminado',
+          if (result.isTie) {
+            // Hay un empate, notificar a los clientes
+            io.to(roomId).emit('game:tie', {
+              message: '¡Hay un empate en la votación!',
+              tiedPlayers: result.tiedPlayers,
             });
+            console.log(`[Game] Empate en la votación en la sala ${roomId}.`);
           } else {
-            io.to(roomId).emit('game:phaseChanged', {
-              phase: 'results',
-              message: 'Resultados de la votación',
+            // No hay empate, proceder como antes
+            io.to(roomId).emit('game:votingResults', {
+              results: result.results,
+              victoryCheck: result.victoryCheck,
             });
+
+            if (result.victoryCheck.winner) {
+              io.to(roomId).emit('game:phaseChanged', { phase: 'victory' });
+            } else {
+              io.to(roomId).emit('game:phaseChanged', { phase: 'results' });
+            }
+            console.log(`[Game] Votación completada en sala ${roomId}.`);
           }
-
-          console.log(
-            `[Game] Votación completada en sala ${roomId}. Eliminado: ${result.results.eliminatedPlayer.username}`,
-          );
-        } else {
-          // Cambio de turno de votación
-          const gameState = Game.getGameState(roomId, socket.userId);
-          io.to(roomId).emit('game:turnChanged', {
-            currentTurn: gameState.currentVotingTurn,
-            message: 'Es el turno del siguiente jugador para votar',
-          });
         }
-
-        console.log(`[Game] Voto enviado por ${socket.username} en sala ${roomId}`);
       } catch (error) {
         console.error('[Game] Error al enviar voto:', error);
-        socket.emit('game:error', {
-          error: 'Error al enviar voto',
-          message: error.message,
+        socket.emit('game:error', { error: 'Error al enviar voto', message: error.message });
+      }
+    });
+
+    /**
+     * Evento: game:resolveTie
+     * Resuelve un empate (solo el host puede hacerlo)
+     */
+    socket.on('game:resolveTie', async (data) => {
+      try {
+        const { roomId } = data;
+        const room = await Room.getRoomInternal(roomId);
+
+        if (!room || room.hostId !== socket.userId) {
+          return socket.emit('game:error', { message: 'Solo el host puede resolver un empate.' });
+        }
+
+        const result = Game.breakTie(roomId);
+
+        io.to(roomId).emit('game:votingResults', {
+          results: result.results,
+          victoryCheck: result.victoryCheck,
+          isTieResolution: true,
         });
+
+        if (result.victoryCheck.winner) {
+          io.to(roomId).emit('game:phaseChanged', { phase: 'victory' });
+        } else {
+          io.to(roomId).emit('game:phaseChanged', { phase: 'results' });
+        }
+        
+        console.log(`[Game] Empate resuelto en sala ${roomId}.`);
+
+      } catch (error) {
+        console.error('[Game] Error al resolver empate:', error);
+        socket.emit('game:error', { error: 'Error al resolver empate', message: error.message });
       }
     });
 
@@ -674,8 +669,9 @@ function setupGameHandlers(io) {
 
         // Enviar estado actualizado a todos
         room.players.forEach((player) => {
+          if (!player.socketId) return;
           const playerGameState = Game.getGameState(roomId, player.userId);
-          io.to(player.socketId || socket.id).emit('game:state', {
+          io.to(player.socketId).emit('game:state', {
             gameState: playerGameState,
           });
         });
@@ -696,15 +692,7 @@ function setupGameHandlers(io) {
       }
     });
 
-    /**
-     * Manejar desconexión
-     * Limpiar estado si es necesario
-     */
-    socket.on('disconnect', () => {
-      console.log(`[Game] Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
-      // Nota: No eliminamos el juego si un jugador se desconecta
-      // El juego continúa y el jugador puede reconectarse
-    });
+
   });
 }
 

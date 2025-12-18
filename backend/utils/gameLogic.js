@@ -464,41 +464,52 @@ function validateVote(voterId, votedPlayerId, activePlayers) {
  * Calcula los resultados de la votación
  * @param {Object} votes - Objeto {voterId: votedPlayerId}
  * @param {Array} players - Array de jugadores
- * @returns {Object} Objeto con mostVotedId, voteCounts, tiedPlayers
+ * @returns {Object} Objeto con mostVotedId, voteCounts, tiedPlayers, isTie
  */
 function calculateVotingResults(votes, players) {
-  // Contar votos
   const voteCounts = {};
   Object.values(votes).forEach((votedId) => {
     voteCounts[votedId] = (voteCounts[votedId] || 0) + 1;
   });
 
-  // Encontrar el más votado
   let maxVotes = 0;
   let mostVotedId = null;
+  let isTie = false;
 
-  Object.entries(voteCounts).forEach(([playerId, count]) => {
-    if (count > maxVotes) {
-      maxVotes = count;
-      mostVotedId = playerId;
-    }
-  });
-
-  // Manejar empates (seleccionar aleatoriamente entre los empatados)
+  if (Object.keys(voteCounts).length > 0) {
+    maxVotes = Math.max(...Object.values(voteCounts));
+  }
+  
   const tiedPlayers = Object.entries(voteCounts)
     .filter(([_, count]) => count === maxVotes)
     .map(([playerId, _]) => playerId);
 
   if (tiedPlayers.length > 1) {
-    mostVotedId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
+    isTie = true;
+  } else if (tiedPlayers.length === 1) {
+    mostVotedId = tiedPlayers[0];
   }
 
   return {
     mostVotedId,
     voteCounts,
     tiedPlayers,
+    isTie,
     maxVotes,
   };
+}
+
+/**
+ * Resuelve un empate en la votación de forma aleatoria.
+ * @param {Array<string>} tiedPlayerIds - Un array de IDs de los jugadores empatados.
+ * @returns {string} El ID del jugador seleccionado aleatoriamente para ser eliminado.
+ */
+function resolveVoteTie(tiedPlayerIds) {
+  if (!tiedPlayerIds || tiedPlayerIds.length === 0) {
+    return null;
+  }
+  const randomIndex = Math.floor(Math.random() * tiedPlayerIds.length);
+  return tiedPlayerIds[randomIndex];
 }
 
 /**

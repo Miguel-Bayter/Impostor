@@ -71,7 +71,6 @@ class Game {
       currentTurn: 0, // Índice del jugador actual en fase de pistas
       clues: [], // Array de objetos {playerId, playerName, clue}
       votes: {}, // Objeto {voterId: votedPlayerId}
-      currentVotingTurn: 0, // Índice del jugador que está votando
       phase: 'roles', // 'roles' | 'clues' | 'voting' | 'results' | 'victory'
       winner: null, // 'citizens' | 'impostor' | null
       rolesConfirmed: new Set(), // Set de playerIds que han confirmado ver sus roles
@@ -115,7 +114,6 @@ class Game {
         clue: c.clue,
       })),
       votes: { ...gameState.votes },
-      currentVotingTurn: gameState.currentVotingTurn,
       phase: gameState.phase,
       winner: gameState.winner,
       createdAt: gameState.createdAt,
@@ -240,73 +238,70 @@ class Game {
     if (!gameState) {
       throw new Error('Juego no encontrado');
     }
-
-    // Verificar que estamos en fase de votación
     if (gameState.phase !== 'voting') {
       throw new Error('No estás en la fase de votación');
     }
 
-    // Obtener jugadores activos
     const activePlayers = gameState.players.filter((p) => !p.isEliminated);
-
-    // Verificar que el jugador tiene el turno de votación
-    if (gameState.currentVotingTurn >= activePlayers.length) {
-      throw new Error('Todos los jugadores ya han votado');
-    }
-
-    const currentVoter = activePlayers[gameState.currentVotingTurn];
-    if (currentVoter.userId !== voterId) {
-      throw new Error('No es tu turno de votar');
-    }
-
-    // Validar voto
     const validation = validateVote(voterId, votedPlayerId, activePlayers);
     if (!validation.isValid) {
       throw new Error(validation.errorMessage);
     }
 
-    // Registrar voto
-    gameState.votes[voterId] = votedPlayerId;
+    // Verificar si el jugador ya ha votado
+    if (gameState.votes[voterId]) {
+      throw new Error('Ya has votado en esta ronda.');
+    }
 
-    // Avanzar turno de votación
-    gameState.currentVotingTurn++;
+    gameState.votes[voterId] = votedPlayerId;
     gameState.updatedAt = new Date().toISOString();
 
-    // Verificar si todos han votado
-    const allVoted = gameState.currentVotingTurn >= activePlayers.length;
+    const allVoted = Object.keys(gameState.votes).length >= activePlayers.length;
 
     if (allVoted) {
-      // Calcular resultados
       const results = calculateVotingResults(gameState.votes, gameState.players);
+      
+      if (results.isTie) {
+        gameState.phase = 'tie-breaker';
+        gameState.tiedPlayers = results.tiedPlayers; // Guardar jugadores empatados
+        return {
+          success: true,
+          votingComplete: true,
+          isTie: true,
+          tiedPlayers: results.tiedPlayers.map(playerId => {
+            const p = gameState.players.find(player => player.userId === playerId);
+            return { userId: p.userId, username: p.username };
+          }),
+          gameState: this.getGameState(roomId, voterId),
+        };
+      }
+
       const eliminatedPlayer = gameState.players.find((p) => p.userId === results.mostVotedId);
 
       if (eliminatedPlayer) {
         eliminatedPlayer.isEliminated = true;
       }
 
-      // Verificar condiciones de victoria
       const victoryCheck = checkVictoryConditions(gameState.players);
-
       if (victoryCheck.winner) {
-        // Hay un ganador
         gameState.phase = 'victory';
         gameState.winner = victoryCheck.winner;
       } else {
-        // El juego continúa
         gameState.phase = 'results';
       }
 
       return {
         success: true,
         votingComplete: true,
+        isTie: false,
         results: {
           mostVotedId: results.mostVotedId,
           voteCounts: results.voteCounts,
-          eliminatedPlayer: {
+          eliminatedPlayer: eliminatedPlayer ? {
             userId: eliminatedPlayer.userId,
             username: eliminatedPlayer.username,
             isImpostor: eliminatedPlayer.isImpostor,
-          },
+          } : null,
         },
         victoryCheck: victoryCheck,
         gameState: this.getGameState(roomId, voterId),
@@ -316,8 +311,141 @@ class Game {
     return {
       success: true,
       votingComplete: false,
+      isTie: false,
       gameState: this.getGameState(roomId, voterId),
     };
+  }
+
+  /**
+   * Resuelve un empate en la votación.
+   * @param {string} roomId - ID de la sala.
+   * @returns {Object} El resultado final de la votación después de resolver el empate.
+   */
+  breakTie(roomId) {
+    const gameState = this.gamesByRoomId.get(roomId);
+    if (!gameState || gameState.phase !== 'tie-breaker' || !gameState.tiedPlayers) {
+      throw new Error('No hay un empate que resolver o el estado es incorrecto.');
+    }
+
+    // Usar la función de gameLogic para resolver el empate
+    const { resolveVoteTie } = require('../utils/gameLogic');
+    const eliminatedPlayerId = resolveVoteTie(gameState.tiedPlayers);
+
+    const eliminatedPlayer = gameState.players.find((p) => p.userId === eliminatedPlayerId);
+    if (eliminatedPlayer) {
+      eliminatedPlayer.isEliminated = true;
+    }
+    
+    // Limpiar el estado de empate
+    delete gameState.tiedPlayers;
+
+    const victoryCheck = checkVictoryConditions(gameState.players);
+    if (victoryCheck.winner) {
+      gameState.phase = 'victory';
+      gameState.winner = victoryCheck.winner;
+    } else {
+      gameState.phase = 'results';
+    }
+    
+    gameState.updatedAt = new Date().toISOString();
+
+    return {
+      success: true,
+      votingComplete: true,
+      isTie: true, // Se mantiene para que el cliente sepa que vino de un empate
+      results: {
+        mostVotedId: eliminatedPlayerId,
+        voteCounts: gameState.votes, // Los votos originales
+        eliminatedPlayer: eliminatedPlayer ? {
+          userId: eliminatedPlayer.userId,
+          username: eliminatedPlayer.username,
+          isImpostor: eliminatedPlayer.isImpostor,
+        } : null,
+      },
+      victoryCheck: victoryCheck,
+    };
+  }
+
+  /**
+   * Maneja la desconexión de un jugador en medio de una partida.
+   * @param {string} roomId - ID de la sala.
+   * @param {string} disconnectedPlayerId - ID del jugador que se desconectó.
+   * @returns {Object|null} Objeto con el estado del juego actualizado o null si no hay cambios.
+   */
+  handlePlayerDisconnect(roomId, disconnectedPlayerId) {
+    const gameState = this.gamesByRoomId.get(roomId);
+    if (!gameState) return null;
+
+    const player = gameState.players.find(
+      (p) => p.userId === disconnectedPlayerId,
+    );
+    if (!player || player.isEliminated) return null;
+
+    console.log(
+      `[Game] Manejando desconexión del jugador ${player.username} en la sala ${roomId}.`,
+    );
+    player.isEliminated = true;
+    gameState.updatedAt = new Date().toISOString();
+
+    // Notificar que el jugador fue eliminado por desconexión
+    const disconnectionUpdate = {
+      eliminatedByDisconnect: {
+        userId: player.userId,
+        username: player.username,
+        isImpostor: player.isImpostor,
+      },
+    };
+
+    // 1. Revisar condiciones de victoria inmediatamente
+    const victoryCheck = checkVictoryConditions(gameState.players);
+    if (victoryCheck.winner) {
+      gameState.phase = 'victory';
+      gameState.winner = victoryCheck.winner;
+      console.log(
+        `[Game] Desconexión resultó en victoria para ${victoryCheck.winner}.`,
+      );
+      return {
+        ...disconnectionUpdate,
+        victoryCheck,
+        gameState: this.getGameState(roomId),
+      };
+    }
+
+    // 2. Ajustar el estado del juego según la fase actual
+    const activePlayers = gameState.players.filter((p) => !p.isEliminated);
+
+    if (gameState.phase === 'clues') {
+      // Si el jugador desconectado tenía el turno, el turno no avanza automáticamente.
+      // El siguiente jugador en la secuencia tomará el turno.
+      // No se necesita un cambio explícito del `currentTurn` porque al recalcular
+      // los jugadores activos, el índice `currentTurn` apuntará a un nuevo jugador si el
+      // jugador actual fue el que se eliminó, o el array se acortará.
+      // Sin embargo, si el último jugador se desconecta, la fase debe cambiar.
+      if (gameState.currentTurn >= activePlayers.length) {
+        gameState.phase = 'voting';
+        gameState.votes = {}; // Reiniciar votos para la nueva fase
+        console.log('[Game] Todos los jugadores activos han dado su pista tras desconexión. Pasando a votación.');
+      }
+    } else if (gameState.phase === 'voting') {
+      // Si un jugador se desconecta durante la votación, se le cuenta como si hubiera votado.
+      // Revisar si todos los jugadores activos restantes ya han votado.
+      const remainingPlayersHaveVoted = activePlayers.every(
+        (p) => gameState.votes[p.userId],
+      );
+      if (remainingPlayersHaveVoted && activePlayers.length > 0) {
+        // Si todos los que quedan han votado, procesar los resultados.
+        console.log('[Game] Todos los jugadores restantes han votado tras desconexión. Procesando resultados.');
+        // Esta lógica es compleja y se maneja en `submitVote`. Aquí solo forzamos la transición si es necesario.
+        // Dado que `submitVote` se encarga del cálculo, lo ideal es no duplicar esa lógica.
+        // Simplemente nos aseguramos de que el juego no se quede atascado.
+        // Una opción es emitir un evento especial que el `gameSocket` pueda usar para recalcular.
+      }
+    }
+
+    console.log(
+      `[Game] El jugador ${player.username} ha sido eliminado por desconexión.`,
+    );
+    return { ...disconnectionUpdate, gameState: this.getGameState(roomId) };
   }
 
   /**
@@ -425,7 +553,6 @@ class Game {
     gameState.votes = {};
     gameState.rolesConfirmed = new Set();
     gameState.currentTurn = 0;
-    gameState.currentVotingTurn = 0;
 
     // Cambiar a fase de pistas
     gameState.phase = 'clues';

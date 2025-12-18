@@ -29,11 +29,14 @@ class SocketClient {
       onPlayerJoined: null,
       onPlayerLeft: null,
       onGameState: null,
+      onRoomReconnected: null,
       onClueSubmitted: null,
       onVoteSubmitted: null,
       onVotingResults: null,
       onPhaseChanged: null,
       onWordGuessed: null,
+      onGameTie: null,
+      onGameVictory: null,
     };
   }
 
@@ -335,6 +338,23 @@ class SocketClient {
       }
     });
 
+    this.socket.on('room:reconnected', (data) => {
+      console.log('[SocketClient] Reconectado a sala:', data);
+
+      const roomId = data?.room?.id || data?.roomId;
+      if (roomId) {
+        this.currentRoomId = roomId;
+        try {
+          localStorage.setItem('impostor_room_id', roomId);
+        } catch (e) {
+        }
+      }
+
+      if (this.callbacks.onRoomReconnected) {
+        this.callbacks.onRoomReconnected(data);
+      }
+    });
+
     this.socket.on('room:error', (error) => {
       console.error('[SocketClient] Error de sala:', error);
       if (this.callbacks.onError) {
@@ -376,6 +396,13 @@ class SocketClient {
       }
     });
 
+    this.socket.on('game:tie', (data) => {
+      console.log('[SocketClient] Empate en la votación:', data);
+      if (this.callbacks.onGameTie) {
+        this.callbacks.onGameTie(data);
+      }
+    });
+
     this.socket.on('game:phaseChanged', (data) => {
       console.log('[SocketClient] Fase cambiada:', data);
       if (this.callbacks.onPhaseChanged) {
@@ -394,6 +421,13 @@ class SocketClient {
       console.error('[SocketClient] Error de juego:', error);
       if (this.callbacks.onError) {
         this.callbacks.onError(error);
+      }
+    });
+
+    this.socket.on('game:victory', (data) => {
+      console.log('[SocketClient] Victoria recibida:', data);
+      if (this.callbacks.onGameVictory) {
+        this.callbacks.onGameVictory(data);
       }
     });
 
@@ -703,15 +737,18 @@ class SocketClient {
    * Unirse a una sala por WebSocket
    */
   joinRoom(roomId) {
-    if (!this.socket || !this.socket.connected) {
-      throw new Error('No conectado al servidor');
-    }
-
     this.currentRoomId = roomId;
     try {
       localStorage.setItem('impostor_room_id', roomId);
     } catch (e) {
     }
+
+    // Si aún no hay socket conectado, solo guardamos el roomId.
+    // connectMain() hará join automático al conectar.
+    if (!this.socket || !this.socket.connected) {
+      return;
+    }
+
     this.socket.emit('room:join', { roomId });
   }
 
@@ -719,12 +756,10 @@ class SocketClient {
    * Salir de la sala actual
    */
   leaveRoom() {
-    if (!this.socket || !this.socket.connected) {
-      return;
-    }
-
     if (this.currentRoomId) {
-      this.socket.emit('room:leave', { roomId: this.currentRoomId });
+      if (this.socket && this.socket.connected) {
+        this.socket.emit('room:leave', { roomId: this.currentRoomId });
+      }
       this.currentRoomId = null;
       try {
         localStorage.removeItem('impostor_room_id');
@@ -752,11 +787,13 @@ class SocketClient {
       throw new Error('No conectado al servidor');
     }
 
-    if (!this.currentRoomId) {
+    const roomId = this.currentRoomId || localStorage.getItem('impostor_room_id');
+    if (!roomId) {
       throw new Error('No estás en ninguna sala');
     }
 
-    this.socket.emit('game:start', { roomId: this.currentRoomId });
+    this.currentRoomId = roomId;
+    this.socket.emit('game:start', { roomId: roomId });
   }
 
   /**
@@ -784,12 +821,14 @@ class SocketClient {
       throw new Error('No conectado al servidor');
     }
 
-    if (!this.currentRoomId) {
+    const roomId = this.currentRoomId || localStorage.getItem('impostor_room_id');
+    if (!roomId) {
       throw new Error('No estás en ninguna sala');
     }
 
+    this.currentRoomId = roomId;
     this.socket.emit('game:startCluesPhase', {
-      roomId: this.currentRoomId,
+      roomId: roomId,
     });
   }
 
@@ -826,6 +865,23 @@ class SocketClient {
     this.socket.emit('game:submitVote', {
       roomId: this.currentRoomId,
       votedPlayerId: votedPlayerId,
+    });
+  }
+
+  /**
+   * Resolver un empate (solo host)
+   */
+  resolveTie() {
+    if (!this.socket || !this.socket.connected) {
+      throw new Error('No conectado al servidor');
+    }
+
+    if (!this.currentRoomId) {
+      throw new Error('No estás en ninguna sala');
+    }
+
+    this.socket.emit('game:resolveTie', {
+      roomId: this.currentRoomId,
     });
   }
 

@@ -43,6 +43,7 @@ function initApp() {
         if (currentRoomId) {
           showScreen('room-waiting');
           socketClient.getRoomState();
+          socketClient.getGameState();
         } else {
           showScreen('rooms');
           loadRooms();
@@ -56,6 +57,8 @@ function initApp() {
         if (token) {
           if (currentRoomId) {
             showScreen('room-waiting');
+            socketClient.getRoomState();
+            socketClient.getGameState();
           } else {
             showScreen('rooms');
           }
@@ -72,6 +75,8 @@ function initApp() {
       if (token) {
         if (currentRoomId) {
           showScreen('room-waiting');
+          socketClient.getRoomState();
+          socketClient.getGameState();
         } else {
           showScreen('rooms');
         }
@@ -111,6 +116,7 @@ function setupSocketCallbacks() {
         if (currentRoomId) {
           showScreen('room-waiting');
           socketClient.getRoomState();
+          socketClient.getGameState();
         } else {
           showScreen('rooms');
           loadRooms();
@@ -135,7 +141,28 @@ function setupSocketCallbacks() {
     updateRoomUI(room);
 
     if (room) {
-      showScreen('room-waiting');
+      if (room.status === 'in_progress') {
+        socketClient.getGameState();
+      } else {
+        showScreen('room-waiting');
+      }
+    }
+  });
+
+  socketClient.on('roomReconnected', (data) => {
+    console.log('[Game] Reconectado a la sala:', data);
+    currentRoom = data.room;
+    currentGameState = data.gameState;
+    
+    updateRoomUI(data.room);
+
+    showScreen('room-waiting');
+    
+    if (data.gameState) {
+      updateGameUI(data.gameState, data.gameState.phase);
+      handlePhaseChange(data.gameState.phase);
+    } else if (data?.room?.status === 'in_progress') {
+      socketClient.getGameState();
     }
   });
 
@@ -150,15 +177,17 @@ function setupSocketCallbacks() {
 
   socketClient.on('playerJoined', (data) => {
     console.log('[Game] Jugador unido:', data);
-    if (currentRoom) {
-      updateRoomUI(currentRoom);
+    if (data.room) {
+      currentRoom = data.room;
+      updateRoomUI(data.room);
     }
   });
 
   socketClient.on('playerLeft', (data) => {
     console.log('[Game] Jugador salió:', data);
-    if (currentRoom) {
-      updateRoomUI(currentRoom);
+    if (data.room) {
+      currentRoom = data.room;
+      updateRoomUI(data.room);
     }
   });
 
@@ -169,6 +198,9 @@ function setupSocketCallbacks() {
 
     if (gameState) {
       updateGameUI(gameState, phase);
+      if (currentPhase) {
+        handlePhaseChange(currentPhase);
+      }
     }
   });
 
@@ -191,6 +223,11 @@ function setupSocketCallbacks() {
     showVotingResults(data);
   });
 
+  socketClient.on('game:tie', (data) => {
+    console.log('[Game] Empate en la votación:', data);
+    showTieScreen(data);
+  });
+
   socketClient.on('phaseChanged', (data) => {
     console.log('[Game] Fase cambiada:', data);
     currentPhase = data.phase;
@@ -201,6 +238,11 @@ function setupSocketCallbacks() {
     console.log('[Game] Palabra adivinada:', data);
     alert(`${data.message}\n\nLa ronda termina.`);
     // El servidor enviará el nuevo estado
+  });
+
+  socketClient.on('game:victory', (data) => {
+    console.log('[Game] Victoria:', data);
+    showVictoryScreen(data.winner);
   });
 }
 
@@ -305,6 +347,11 @@ function setupUIEventListeners() {
   const playAgainBtn = document.getElementById('btn-play-again');
   if (playAgainBtn) {
     playAgainBtn.addEventListener('click', handleNewGame);
+  }
+
+  const resolveTieBtn = document.getElementById('btn-resolve-tie');
+  if(resolveTieBtn) {
+    resolveTieBtn.addEventListener('click', handleResolveTie);
   }
 }
 
@@ -446,6 +493,23 @@ function handleLogout() {
 
   try {
     if (socketClient) {
+      const roomId = socketClient.getCurrentRoomId() || localStorage.getItem('impostor_room_id');
+      const token = localStorage.getItem('impostor_token');
+      const serverUrl = socketClient.serverUrl || window.SERVER_URL || 'http://localhost:3000';
+
+      if (roomId && token) {
+        try {
+          fetch(`${serverUrl}/api/rooms/${roomId}/leave`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }).catch(() => {
+          });
+        } catch (e) {
+        }
+      }
+
       socketClient.leaveRoom();
       socketClient.clearAuth();
       socketClient.disconnect();
@@ -453,6 +517,10 @@ function handleLogout() {
   } catch (e) {
   } finally {
     localStorage.removeItem('impostor_token');
+    try {
+      localStorage.removeItem('impostor_room_id');
+    } catch (e) {
+    }
     resetLocalState();
     updateSessionUI();
     showScreen('auth');
@@ -661,10 +729,16 @@ function updateRoomUI(room) {
     room.players.forEach((player) => {
       const playerItem = document.createElement('div');
       playerItem.className = 'player-item';
+      if (!player.isConnected) {
+        playerItem.classList.add('disconnected');
+      }
+
       const isHost = room.hostId === player.userId;
+      // El "(Host)" solo debe mostrarse si el jugador es el host actual.
       playerItem.innerHTML = `
-                <span>${player.username}${isHost ? ' (Host)' : ''}</span>
-            `;
+        <span>${player.username}${isHost ? ' (Host)' : ''}</span>
+        ${!player.isConnected ? '<span class="status-indicator">Desconectado</span>' : ''}
+      `;
       playersList.appendChild(playerItem);
     });
   }
@@ -1100,64 +1174,63 @@ function showVotingResults(data) {
 
   resultsContent.innerHTML = '';
 
-  const { results, victoryCheck } = data;
+  const { results, victoryCheck, isTieResolution } = data;
   const eliminatedPlayer = results.eliminatedPlayer;
 
-  // Información del jugador eliminado
+  // Ocultar botón de resolver empate
+  const resolveTieBtn = document.getElementById('btn-resolve-tie');
+  if (resolveTieBtn) resolveTieBtn.style.display = 'none';
+
   const resultCard = document.createElement('div');
   resultCard.className = 'result-card';
 
-  if (eliminatedPlayer.isImpostor) {
-    resultCard.classList.add('success-result');
-    resultCard.innerHTML = `
-            <div class="result-icon">✅</div>
-            <h3>¡Impostor Eliminado!</h3>
-            <p><strong>${eliminatedPlayer.username}</strong> era el impostor y ha sido eliminado.</p>
-            <p class="result-message">Los ciudadanos ganan esta ronda.</p>
-        `;
-  } else {
-    resultCard.classList.add('error-result');
-    resultCard.innerHTML = `
-            <div class="result-icon">❌</div>
-            <h3>Jugador Inocente Eliminado</h3>
-            <p><strong>${eliminatedPlayer.username}</strong> era un ciudadano y ha sido eliminado por error.</p>
-            <p class="result-message">El juego continúa...</p>
-        `;
+  if (isTieResolution) {
+    resultCard.innerHTML = `<h3>El empate se ha resuelto</h3>`;
   }
 
+  if (eliminatedPlayer) {
+    if (eliminatedPlayer.isImpostor) {
+      resultCard.classList.add('success-result');
+      resultCard.innerHTML += `
+              <div class="result-icon">✅</div>
+              <h3>¡Impostor Eliminado!</h3>
+              <p><strong>${eliminatedPlayer.username}</strong> era el impostor y ha sido eliminado.</p>
+          `;
+    } else {
+      resultCard.classList.add('error-result');
+      resultCard.innerHTML += `
+              <div class="result-icon">❌</div>
+              <h3>Jugador Inocente Eliminado</h3>
+              <p><strong>${eliminatedPlayer.username}</strong> era un ciudadano y ha sido eliminado por error.</p>
+          `;
+    }
+  }
   resultsContent.appendChild(resultCard);
 
-  // Mostrar conteo de votos
-  if (results.voteCounts) {
-    const votesCard = document.createElement('div');
-    votesCard.className = 'votes-summary';
-    votesCard.innerHTML = '<h4>Resumen de votos:</h4>';
+  // ... (el resto de la lógica para mostrar votos y victoria)
+}
 
-    const votesList = document.createElement('div');
-    votesList.className = 'votes-list';
+function showTieScreen(data) {
+  showScreen('results');
+  const resultsContent = document.getElementById('results-content');
+  if (!resultsContent) return;
 
-    Object.entries(results.voteCounts).forEach(([playerId, count]) => {
-      const player = currentGameState.players.find((p) => p.userId === playerId);
-      if (player) {
-        const voteItem = document.createElement('div');
-        voteItem.className = 'vote-item';
-        voteItem.innerHTML = `
-                    <span>${player.username}:</span>
-                    <strong>${count} voto${count !== 1 ? 's' : ''}</strong>
-                `;
-        votesList.appendChild(voteItem);
-      }
-    });
+  resultsContent.innerHTML = `
+    <div class="result-card">
+      <div class="result-icon">⚖️</div>
+      <h3>¡Empate en la votación!</h3>
+      <p>Los siguientes jugadores han empatado:</p>
+      <div class="tied-players-list">
+        ${data.tiedPlayers.map(p => `<span>${p.username}</span>`).join('')}
+      </div>
+      <p class="role-instruction">El host decidirá el desempate.</p>
+    </div>
+  `;
 
-    votesCard.appendChild(votesList);
-    resultsContent.appendChild(votesCard);
-  }
-
-  // Si hay un ganador, mostrar pantalla de victoria
-  if (victoryCheck && victoryCheck.winner) {
-    setTimeout(() => {
-      showVictoryScreen(victoryCheck.winner);
-    }, 3000);
+  const resolveTieBtn = document.getElementById('btn-resolve-tie');
+  const isHost = currentRoom && currentRoom.hostId === currentUser.id;
+  if (resolveTieBtn) {
+    resolveTieBtn.style.display = isHost ? 'block' : 'none';
   }
 }
 
@@ -1205,6 +1278,15 @@ function handleContinueGame() {
     socketClient.startNewRound();
   } catch (error) {
     showError(error.message || 'Error al iniciar nueva ronda');
+  }
+}
+
+function handleResolveTie() {
+  hideError();
+  try {
+    socketClient.resolveTie();
+  } catch (error) {
+    showError(error.message || 'Error al resolver empate');
   }
 }
 

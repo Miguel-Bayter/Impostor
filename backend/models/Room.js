@@ -264,8 +264,12 @@ class Room {
       }
 
       if (room.hostId === userId && room.players.length > 0) {
-        room.hostId = room.players[0].userId;
-        room.players[0].isHost = true;
+        const connected = room.players.find((p) => p && p.socketId);
+        const newHost = connected || room.players[0];
+        room.hostId = newHost.userId;
+        room.players.forEach((p) => {
+          p.isHost = p.userId === room.hostId;
+        });
       }
 
       room.updatedAt = new Date().toISOString();
@@ -290,8 +294,12 @@ class Room {
 
     // Si el host se fue, asignar nuevo host (el primer jugador)
     if (room.hostId === userId && room.players.length > 0) {
-      room.hostId = room.players[0].userId;
-      room.players[0].isHost = true;
+      const connected = room.players.find((p) => p && p.socketId);
+      const newHost = connected || room.players[0];
+      room.hostId = newHost.userId;
+      room.players.forEach((p) => {
+        p.isHost = p.userId === room.hostId;
+      });
     }
 
     room.updatedAt = new Date().toISOString();
@@ -388,6 +396,26 @@ class Room {
   }
 
   /**
+   * Buscar la sala en la que se encuentra un jugador
+   * @param {string} userId - ID del usuario (UUID)
+   * @returns {Object|null} La sala en la que está el jugador, o null
+   */
+  async findRoomByPlayerId(userId) {
+    if (this.isDbReady()) {
+      const room = await RoomDoc.findOne({ 'players.userId': userId }).lean();
+      return room ? this.sanitizeRoom(room) : null;
+    }
+
+    for (const room of this.roomsById.values()) {
+      if (room.players.some((p) => p.userId === userId)) {
+        return this.sanitizeRoom(room);
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Obtener todas las salas (útil para debugging)
    * @returns {Array} Lista de salas sanitizadas
    */
@@ -432,14 +460,49 @@ class Room {
   }
 
   /**
+   * Promueve un nuevo host si el host actual se desconecta.
+   * @param {string} roomId - ID de la sala.
+   * @param {string} oldHostId - ID del host que se desconectó.
+   * @returns {Object|null} La sala actualizada o null si no se pudo promover un nuevo host.
+   */
+  async promoteNewHost(roomId, oldHostId) {
+    const room = await this.getRoomInternal(roomId);
+    if (!room || room.hostId !== oldHostId) {
+      return null; // No hay nada que hacer si no era el host
+    }
+
+    // Encontrar el siguiente jugador conectado para ser el nuevo host
+    const newHost = room.players.find(p => p.userId !== oldHostId && p.socketId);
+    
+    if (newHost) {
+      room.hostId = newHost.userId;
+      // Actualizar el flag isHost
+      room.players.forEach(p => {
+        p.isHost = p.userId === newHost.userId;
+      });
+      room.updatedAt = new Date().toISOString();
+
+      if (this.isDbReady()) {
+        await RoomDoc.updateOne({ _id: roomId }, { $set: { hostId: newHost.userId, players: room.players, updatedAt: room.updatedAt } });
+      }
+
+      return this.sanitizeRoom(room);
+    } else {
+      // Si no hay otros jugadores, la sala se eliminará eventualmente por inactividad
+      return null;
+    }
+  }
+
+  /**
    * Sanitizar sala (remover información sensible)
    * @param {Object} room - Sala a sanitizar
    * @returns {Object} Sala sanitizada
    */
   sanitizeRoom(room) {
-    // Crear copia sin modificar el original
+    // Sanitizar sala para no exponer datos sensibles (como socketId)
+    // y añadir información útil (como isConnected)
     const sanitized = {
-      id: room.id || room._id,
+      id: room.id || room._id.toString(),
       hostId: room.hostId,
       name: room.name,
       status: room.status,
@@ -449,7 +512,7 @@ class Room {
         username: p.username,
         joinedAt: p.joinedAt,
         isHost: p.isHost,
-        // No incluir socketId en la respuesta
+        isConnected: !!p.socketId, // <--- CAMBIO CLAVE
       })),
       settings: { ...room.settings },
       createdAt: room.createdAt,

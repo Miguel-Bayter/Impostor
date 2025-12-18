@@ -10,6 +10,7 @@ const {
   calculateVotingResults,
   checkVictoryConditions,
   validateGameRules,
+  resolveVoteTie,
 } = gameLogic;
 
 describe('gameLogic', () => {
@@ -52,8 +53,24 @@ describe('gameLogic', () => {
     const votes = { a: 'x', b: 'y', c: 'x', d: 'y' };
     const r = calculateVotingResults(votes, []);
     expect(r.maxVotes).toBe(2);
+    expect(r.isTie).toBe(true);
+    expect(r.mostVotedId).toBe(null);
     expect(r.tiedPlayers.sort()).toEqual(['x', 'y'].sort());
-    expect(['x', 'y']).toContain(r.mostVotedId);
+  });
+
+  it('calculateVotingResults sin empates', () => {
+    const votes = { a: 'x', b: 'y', c: 'x' };
+    const r = calculateVotingResults(votes, []);
+    expect(r.maxVotes).toBe(2);
+    expect(r.isTie).toBe(false);
+    expect(r.mostVotedId).toBe('x');
+    expect(r.tiedPlayers).toEqual(['x']);
+  });
+
+  it('resolveVoteTie selecciona un jugador de la lista', () => {
+    const tied = ['a', 'b', 'c'];
+    const resolved = resolveVoteTie(tied);
+    expect(tied).toContain(resolved);
   });
 
   it('checkVictoryConditions evalúa ganador', () => {

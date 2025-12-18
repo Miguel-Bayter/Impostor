@@ -36,6 +36,7 @@ const { checkRateLimit } = require('./utils/socketRateLimiter');
 // Importar modelos (compatibilidad con rutas/sockets)
 const User = require('./models/User');
 const Room = require('./models/Room');
+const Game = require('./models/Game');
 
 // Verificar variables de entorno requeridas
 const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI', 'REDIS_URL'];
@@ -321,6 +322,61 @@ async function closeInactiveRooms() {
 
 setInterval(closeInactiveRooms, 60 * 1000);
 
+// Limpieza automática de salas/juegos cuando todos los jugadores quedan desconectados
+// (ej: todos cierran pestaña/cierre de sesión sin emitir room:leave)
+const ROOM_ALL_DISCONNECTED_GRACE_MS = 60 * 1000;
+const allDisconnectedSince = new Map();
+
+async function closeAllDisconnectedRooms() {
+  try {
+    const rooms = await Room.getAll();
+    const now = Date.now();
+
+    for (const room of rooms) {
+      if (!room || !room.id) continue;
+
+      const players = Array.isArray(room.players) ? room.players : [];
+      const anyConnected = players.some((p) => p && p.isConnected);
+
+      if (anyConnected) {
+        allDisconnectedSince.delete(room.id);
+        continue;
+      }
+
+      const startedAt = allDisconnectedSince.get(room.id) || now;
+      allDisconnectedSince.set(room.id, startedAt);
+
+      if (now - startedAt < ROOM_ALL_DISCONNECTED_GRACE_MS) continue;
+
+      const reason = 'cierre de sala (todos desconectados)';
+
+      io.to(room.id).emit('room:closed', {
+        roomId: room.id,
+        reason: reason,
+        message: reason,
+      });
+
+      try {
+        await io.in(room.id).socketsLeave(room.id);
+      } catch (e) {
+      }
+
+      try {
+        Game.deleteGame(room.id);
+      } catch (e) {
+      }
+
+      await Room.delete(room.id);
+      allDisconnectedSince.delete(room.id);
+      console.log(`[Room] Sala ${room.id} eliminada (${reason})`);
+    }
+  } catch (error) {
+    console.error('[Room] Error en cierre por todos desconectados:', error);
+  }
+}
+
+setInterval(closeAllDisconnectedRooms, 10 * 1000);
+
 // WebSocket connection (solo se ejecuta si la autenticación es exitosa)
 io.on('connection', (socket) => {
   console.log(
@@ -372,9 +428,13 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0'; // Escuchar en todas las interfaces para producción
 
-server.listen(PORT, HOST, () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📡 WebSocket disponible en ws://${HOST}:${PORT}`);
-  console.log(`🌐 Entorno: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔒 CORS permitido para: ${allowedOrigins.join(', ')}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(PORT, HOST, () => {
+    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(`📡 WebSocket disponible en ws://${HOST}:${PORT}`);
+    console.log(`🌐 Entorno: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 CORS permitido para: ${allowedOrigins.join(', ')}`);
+  });
+}
+
+module.exports = { app, server, io };

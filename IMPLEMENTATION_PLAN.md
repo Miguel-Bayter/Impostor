@@ -11,11 +11,11 @@
 - Sin cambios disruptivos al protocolo WS; mantener compatibilidad de eventos actuales.
 
 ## Checklist de Fases
-- [x] Fase 1 — Seguridad y Configuración
+- [x] Fase 1 — Seguridad y Configuración ✅
 - [x] Fase 2 — Calidad y DX ✅
-- [ ] Fase 3 — Persistencia Inicial 🚧
-- [x] Fase 4 — Rate Limiting y Sesiones con Redis
-- [ ] Fase 5 — Robustez del Juego
+- [x] Fase 3 — Persistencia Inicial ✅
+- [x] Fase 4 — Rate Limiting y Sesiones con Redis ✅
+- [ ] Fase 5 — Robustez del Juego 🚧
 - [ ] Fase 6 — Mejoras de Frontend
 - [ ] Fase 7 — Observabilidad y CI/CD
 
@@ -110,19 +110,37 @@
 - Riesgos y mitigación:
   - Redis caído: fallback a in-memory con avisos y métricas.
 
-## Fase 5 — Robustez del Juego (Semana 4–6)
-- Objetivos:
-  - Reasignación automática de `socketId` al reconectar.
-  - Revisar UX de desempate de votaciones.
-- Entregables:
-  - Hook en `connection` que sincronice `socket.userId` y `currentRoomId` con `Room.updatePlayerSocket` (`backend/models/Room.js:214`).
-  - Mecánica de desempate configurable (segundo voto o sorteo con feedback).
-- Cambios previstos:
-  - `backend/sockets/gameSocket.js:*` y `backend/sockets/roomSocket.js:*` (rebind y UX).
-  - `backend/utils/gameLogic.js:257` (política de empate).
-- Criterios de aceptación:
-  - Reconexión del jugador recupera estado sin interacción manual.
-  - Empate no sorprende: mensaje y flujo claro.
+## Fase 5 — Robustez del Juego (Semana 4–6) 🚧
+- **Objetivos:**
+  - Garantizar que la reconexión de un jugador sea transparente y no interrumpa el juego.
+  - Implementar una mecánica de desempate clara y justa durante las votaciones para evitar bucles o confusión.
+  - Mejorar la resiliencia del estado del juego frente a desconexiones inesperadas.
+
+- **Entregables:**
+  - **Manejo de Reconexión:**
+    - Un hook en el evento `connection` de Socket.io que, para un usuario autenticado, busca si ya estaba en una sala y actualiza su `socketId` usando `Room.updatePlayerSocket`.
+    - El cliente recibirá el estado actual del juego (`gameState`) inmediatamente después de reconectar, permitiéndole continuar sin acciones manuales.
+  - **Mecánica de Desempate:**
+    - Lógica en `backend/utils/gameLogic.js` para gestionar empates. La política por defecto será un sorteo aleatorio entre los más votados.
+    - Evento de `game:tie-breaker` emitido a todos los jugadores, informando del empate y el resultado del sorteo.
+    - El frontend mostrará un mensaje claro que explique el empate y quién fue eliminado como resultado.
+
+- **Cambios Previstos:**
+  - `backend/sockets/roomSocket.js`: Modificar el manejador de `connection` para incluir la lógica de re-sincronización del socket. Se usará el `userId` del token JWT para buscar al jugador en las salas activas.
+  - `backend/models/Room.js`: Asegurar que `updatePlayerSocket` (`Room.js:214`) maneja correctamente el cambio de `socketId` y notifica al resto de la sala si es necesario (ej. "Player X has reconnected").
+  - `backend/utils/gameLogic.js`: Implementar la función `resolveVoteTie`, que recibe los resultados de la votación y devuelve al jugador a eliminar.
+  - `backend/sockets/gameSocket.js`: Integrar `resolveVoteTie` en el flujo del evento `game:vote`. Emitir el nuevo evento `game:tie-breaker` con el resultado.
+  - `frontend/game.js`: Añadir un manejador para el evento `game:tie-breaker` que muestre una notificación o modal explicando el resultado del desempate.
+
+- **Criterios de Aceptación:**
+  - Un jugador que cierra y reabre el navegador (simulando una desconexión) vuelve a su sala y partida en curso automáticamente.
+  - El estado del juego (pistas, votos, roles) se mantiene consistente para el jugador reconectado.
+  - En una votación con empate, se notifica a todos los jugadores del empate y del método de resolución (sorteo).
+  - El jugador eliminado por desempate es correctamente expulsado del juego, y la partida continúa al siguiente estado.
+
+- **Riesgos y Mitigación:**
+  - **Condiciones de Carrera:** Múltiples reconexiones rápidas podrían causar inconsistencias. Mitigación: Usar operaciones atómicas en la base de datos (si aplica) o un mecanismo de bloqueo simple (p. ej., a nivel de `userId`) durante la actualización del socket.
+  - **UX del Desempate:** Que el sorteo se sienta injusto. Mitigación: Comunicar claramente la regla en la interfaz ("En caso de empate, la eliminación será por sorteo") antes de que comience la votación. A futuro, se puede hacer configurable (ej. segunda ronda de votación).
 
 ## Fase 6 — Mejoras de Frontend (Semana 2–3, paralelo)
 - Objetivos:

@@ -17,6 +17,7 @@
  */
 
 const Room = require('../models/Room');
+const Game = require('../models/Game'); // Importar Game
 const { checkRateLimit } = require('../utils/socketRateLimiter');
 
 /**
@@ -24,6 +25,29 @@ const { checkRateLimit } = require('../utils/socketRateLimiter');
  * @param {Object} io - Instancia de Socket.io
  */
 function setupRoomHandlers(io) {
+  const HOST_MIGRATION_GRACE_MS = 15000;
+  const GAME_DISCONNECT_GRACE_MS = 15000;
+  const pendingHostMigrations = new Map();
+  const pendingGameDisconnects = new Map();
+
+  const cancelPendingHostMigration = (roomId, userId) => {
+    const key = `${roomId}:${userId}`;
+    const t = pendingHostMigrations.get(key);
+    if (t) {
+      clearTimeout(t);
+      pendingHostMigrations.delete(key);
+    }
+  };
+
+  const cancelPendingGameDisconnect = (roomId, userId) => {
+    const key = `${roomId}:${userId}`;
+    const t = pendingGameDisconnects.get(key);
+    if (t) {
+      clearTimeout(t);
+      pendingGameDisconnects.delete(key);
+    }
+  };
+
   io.on('connection', (socket) => {
     console.log(
       `[Room] Usuario conectado: ${socket.id} (Usuario ID: ${socket.userId}, Username: ${socket.username})`,
@@ -31,6 +55,60 @@ function setupRoomHandlers(io) {
 
     // Almacenar la sala actual del socket
     socket.currentRoomId = null;
+
+    // ---- INICIO: Lógica de Reconexión Automática ----
+    const handleAutoReconnection = async () => {
+      if (!socket.userId) return;
+
+      try {
+        const room = await Room.findRoomByPlayerId(socket.userId);
+        if (room && room.id) {
+          console.log(`[Reconnection] Usuario ${socket.username} encontrado en la sala ${room.id}. Reconectando...`);
+
+          cancelPendingHostMigration(room.id, socket.userId);
+          cancelPendingGameDisconnect(room.id, socket.userId);
+
+          // Actualizar socketId y unir a la sala de Socket.io
+          await Room.updatePlayerSocket(room.id, socket.userId, socket.id);
+          socket.join(room.id);
+          socket.currentRoomId = room.id;
+
+          // Obtener el estado completo y actualizado de la sala y el juego
+          const updatedRoom = await Room.findById(room.id);
+          const gameState = Game.getGameState(room.id, socket.userId);
+
+          // Notificar al jugador que se ha reconectado
+          socket.emit('room:reconnected', {
+            message: 'Te has reconectado a la sala.',
+            room: updatedRoom,
+            gameState: gameState,
+          });
+
+          // Notificar a los demás en la sala
+          socket.to(room.id).emit('room:playerReconnected', {
+            message: `${socket.username} se ha reconectado.`,
+            player: {
+              userId: socket.userId,
+              username: socket.username,
+            },
+          });
+          
+          io.to(room.id).emit('room:state', { room: updatedRoom });
+
+          console.log(`[Reconnection] Usuario ${socket.username} reconectado exitosamente a la sala ${room.id}.`);
+        }
+      } catch (error) {
+        console.error('[Reconnection] Error al intentar reconectar automáticamente:', error);
+        socket.emit('room:error', {
+          error: 'Error de reconexión',
+          message: 'Hubo un problema al intentar reconectarte a tu sala anterior.',
+        });
+      }
+    };
+
+    handleAutoReconnection();
+    // ---- FIN: Lógica de Reconexión Automática ----
+
 
     /**
      * Evento: room:join
@@ -79,6 +157,9 @@ function setupRoomHandlers(io) {
           if (socket.currentRoomId && socket.currentRoomId !== roomId) {
             await handleLeaveRoom(socket, socket.currentRoomId, io);
           }
+
+          cancelPendingHostMigration(roomId, socket.userId);
+          cancelPendingGameDisconnect(roomId, socket.userId);
 
           await Room.updatePlayerSocket(roomId, socket.userId, socket.id);
 
@@ -259,13 +340,111 @@ function setupRoomHandlers(io) {
 
     /**
      * Manejar desconexión
-     * Remover jugador de la sala si estaba en una
+     * Marcar al jugador como desconectado y notificar a la sala.
      */
     socket.on('disconnect', async () => {
-      if (socket.currentRoomId) {
-        await Room.updatePlayerSocket(socket.currentRoomId, socket.userId, null);
+      console.log(`[Disconnection] Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
+      if (socket.currentRoomId && socket.userId) {
+        try {
+          const roomId = socket.currentRoomId;
+          const userId = socket.userId;
+          const username = socket.username;
+
+          const roomBeforeUpdate = await Room.getRoomInternal(roomId);
+
+          // Marcar al jugador como desconectado (socketId = null)
+          await Room.updatePlayerSocket(roomId, userId, null);
+
+          const updatedRoom = await Room.findById(roomId);
+          if (updatedRoom) {
+            io.to(roomId).emit('room:state', { room: updatedRoom });
+          }
+
+          // Notificar a los demás jugadores en la sala
+          socket.to(roomId).emit('room:playerDisconnected', {
+            message: `${username} se ha desconectado. Puede reconectarse.`,
+            player: { userId, username },
+          });
+
+          if (roomBeforeUpdate && roomBeforeUpdate.hostId === userId) {
+            cancelPendingHostMigration(roomId, userId);
+            const key = `${roomId}:${userId}`;
+            const timeoutId = setTimeout(async () => {
+              try {
+                const roomNow = await Room.getRoomInternal(roomId);
+                if (!roomNow) return;
+                const hostStillSame = roomNow.hostId === userId;
+                const player = roomNow.players?.find((p) => p.userId === userId);
+                const stillDisconnected = !player?.socketId;
+                if (!hostStillSame || !stillDisconnected) return;
+
+                const promoted = await Room.promoteNewHost(roomId, userId);
+                if (promoted) {
+                  io.to(roomId).emit('room:state', { room: promoted });
+                }
+              } catch (e) {
+              } finally {
+                pendingHostMigrations.delete(key);
+              }
+            }, HOST_MIGRATION_GRACE_MS);
+
+            pendingHostMigrations.set(key, timeoutId);
+          }
+
+          if (Game.hasGame(roomId)) {
+            cancelPendingGameDisconnect(roomId, userId);
+            const key = `${roomId}:${userId}`;
+            const timeoutId = setTimeout(async () => {
+              try {
+                const roomNow = await Room.getRoomInternal(roomId);
+                const playerNow = roomNow?.players?.find((p) => p.userId === userId);
+                const stillDisconnected = !playerNow?.socketId;
+                if (!stillDisconnected) return;
+
+                const gameUpdate = Game.handlePlayerDisconnect(roomId, userId);
+                if (!gameUpdate) return;
+
+                const roomAfter = await Room.getRoomInternal(roomId);
+                if (roomAfter) {
+                  roomAfter.players.forEach((p) => {
+                    if (!p.socketId) return;
+                    const playerGameState = Game.getGameState(roomId, p.userId);
+                    io.to(p.socketId).emit('game:state', { gameState: playerGameState });
+                  });
+                }
+
+                if (gameUpdate.victoryCheck && gameUpdate.victoryCheck.winner) {
+                  io.to(roomId).emit('game:victory', {
+                    winner: gameUpdate.victoryCheck.winner,
+                    reason: 'Un jugador se ha desconectado, resultando en una victoria.',
+                    eliminatedPlayer: gameUpdate.eliminatedByDisconnect,
+                  });
+                } else {
+                  io.to(roomId).emit('game:playerDisconnected', {
+                    message: `El jugador ${username} ha sido eliminado de la partida por desconexión.`,
+                    eliminatedPlayer: gameUpdate.eliminatedByDisconnect,
+                    gameState: null,
+                  });
+                }
+              } catch (e) {
+              } finally {
+                pendingGameDisconnects.delete(key);
+              }
+            }, GAME_DISCONNECT_GRACE_MS);
+
+            pendingGameDisconnects.set(key, timeoutId);
+          }
+
+          console.log(
+            `[Disconnection] Usuario ${username} marcado como desconectado en la sala ${roomId}.`,
+          );
+        } catch (error) {
+          console.error(
+            `[Disconnection] Error al manejar la desconexión para el usuario ${socket.userId} en la sala ${socket.currentRoomId}:`,
+            error,
+          );
+        }
       }
-      console.log(`[Room] Usuario desconectado: ${socket.id} (Usuario ID: ${socket.userId})`);
     });
   });
 }
@@ -296,6 +475,33 @@ async function handleLeaveRoom(socket, roomId, io, isDisconnect = false) {
 
     // Remover jugador de la sala
     const updatedRoom = await Room.removePlayer(roomId, socket.userId);
+
+    // Si el jugador abandona manualmente una partida en curso, actualizar el estado del juego
+    // para que no bloquee turnos/votación.
+    if (!isDisconnect && Game.hasGame(roomId)) {
+      try {
+        const gameUpdate = Game.handlePlayerDisconnect(roomId, socket.userId);
+        if (gameUpdate) {
+          const roomAfter = await Room.getRoomInternal(roomId);
+          if (roomAfter) {
+            roomAfter.players.forEach((p) => {
+              if (!p.socketId) return;
+              const playerGameState = Game.getGameState(roomId, p.userId);
+              io.to(p.socketId).emit('game:state', { gameState: playerGameState });
+            });
+          }
+
+          if (gameUpdate.victoryCheck && gameUpdate.victoryCheck.winner) {
+            io.to(roomId).emit('game:victory', {
+              winner: gameUpdate.victoryCheck.winner,
+              reason: 'Un jugador abandonó la partida, resultando en una victoria.',
+              eliminatedPlayer: gameUpdate.eliminatedByDisconnect,
+            });
+          }
+        }
+      } catch (e) {
+      }
+    }
 
     // Salir del room de Socket.io
     socket.leave(roomId);
