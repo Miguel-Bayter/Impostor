@@ -31,6 +31,7 @@ const roomSchema = new mongoose.Schema(
       minPlayers: { type: Number, default: 3 },
       numImpostors: { type: Number, default: 1 },
     },
+    isPrivate: { type: Boolean, default: false },
     createdAt: { type: String, required: true },
     updatedAt: { type: String, required: true },
   },

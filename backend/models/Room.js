@@ -99,6 +99,7 @@ class Room {
         minPlayers: settings.minPlayers,
         numImpostors: settings.numImpostors,
       },
+      isPrivate: options.isPrivate || false,
       createdAt: now,
       updatedAt: now,
     };
@@ -112,6 +113,7 @@ class Room {
         maxPlayers: room.maxPlayers,
         players: room.players,
         settings: room.settings,
+        isPrivate: room.isPrivate,
         createdAt: room.createdAt,
         updatedAt: room.updatedAt,
       });
@@ -146,6 +148,72 @@ class Room {
     }
 
     return this.sanitizeRoom(room);
+  }
+
+  /**
+   * Buscar sala por los primeros caracteres del UUID (código corto)
+   * @param {string} codePrefix - Primeros 6 caracteres del UUID (case-insensitive)
+   * @returns {Object|null} Sala encontrada (sanitizada) o null si no se encuentra o hay ambigüedad
+   */
+  async findByCodePrefix(codePrefix) {
+    if (!codePrefix || typeof codePrefix !== 'string') {
+      return null;
+    }
+
+    // Normalizar: convertir a mayúsculas y remover guiones del prefijo
+    const normalizedPrefix = codePrefix.toUpperCase().replace(/-/g, '').slice(0, 6);
+
+    if (normalizedPrefix.length !== 6) {
+      return null;
+    }
+
+    if (this.isDbReady()) {
+      // Buscar en MongoDB usando regex case-insensitive
+      // Buscar UUIDs que comiencen con el prefijo (puede tener guiones)
+      const regexPattern = new RegExp(`^${normalizedPrefix}`, 'i');
+      const allRooms = await RoomDoc.find({ _id: { $regex: regexPattern } }).lean();
+
+      // Filtrar en memoria para normalizar (remover guiones) y encontrar coincidencias exactas
+      const matchingRooms = allRooms.filter((room) => {
+        const normalizedRoomId = String(room._id).replace(/-/g, '').toUpperCase();
+        return normalizedRoomId.startsWith(normalizedPrefix);
+      });
+
+      if (matchingRooms.length === 0) {
+        return null;
+      }
+
+      if (matchingRooms.length > 1) {
+        // Ambigüedad: múltiples salas con el mismo prefijo
+        // Esto es muy improbable pero debemos manejarlo
+        console.warn(`[Room] Múltiples salas encontradas con prefijo ${normalizedPrefix}`);
+        return null;
+      }
+
+      return this.sanitizeRoom(matchingRooms[0]);
+    }
+
+    // Buscar en memoria (Map)
+    const matchingRooms = [];
+    for (const [roomId, room] of this.roomsById.entries()) {
+      // Normalizar el roomId (remover guiones y convertir a mayúsculas)
+      const normalizedRoomId = roomId.replace(/-/g, '').toUpperCase();
+      if (normalizedRoomId.startsWith(normalizedPrefix)) {
+        matchingRooms.push(room);
+      }
+    }
+
+    if (matchingRooms.length === 0) {
+      return null;
+    }
+
+    if (matchingRooms.length > 1) {
+      // Ambigüedad: múltiples salas con el mismo prefijo
+      console.warn(`[Room] Múltiples salas encontradas con prefijo ${normalizedPrefix}`);
+      return null;
+    }
+
+    return this.sanitizeRoom(matchingRooms[0]);
   }
 
   /**
@@ -515,6 +583,7 @@ class Room {
         isConnected: !!p.socketId, // <--- CAMBIO CLAVE
       })),
       settings: { ...room.settings },
+      isPrivate: room.isPrivate || false,
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
     };
