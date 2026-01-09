@@ -1,0 +1,8 @@
+Files to update:
+1. CluePhase.tsx - remove framer-motion
+2. VotingPhase.tsx - remove framer-motion and gradients
+3. ResultsScreen.tsx - remove framer-motion and gradients
+4. MainLayout.tsx - remove framer-motion
+5. CreateRoomModal.tsx - remove framer-motion
+6. JoinRoomByCode.tsx - remove framer-motion
+7. RoomDiscovery.tsx - remove framer-motion

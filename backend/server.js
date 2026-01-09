@@ -59,7 +59,7 @@ const server = http.createServer(app);
 // Configuración de Socket.io con CORS dinámico
 const socketIoOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
-  : ['http://127.0.0.1:5500', 'http://localhost:5500', 'null'];
+  : ['http://127.0.0.1:5173', 'http://localhost:5173', 'null'];
 
 // Configuración de Socket.io
 const io = new SocketIo(server, {

@@ -13,3 +13,16 @@ Thumbs.db
 
 # Cada proyecto tiene su propio .gitignore
 # Ver backend/.gitignore y frontend/.gitignore
+
+# Ignores
+.claude
+.playwright-mcp
+
+# Enviroment
+.env
+/*.env
+.env.local
+
+# Auto Claude data directory
+.auto-claude/
+.claude_settings.json

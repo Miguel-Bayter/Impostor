@@ -31,7 +31,7 @@ const { sanitizeRoomName } = require('../utils/sanitizer');
  */
 router.post('/create', authenticateToken, async (req, res) => {
   try {
-    const { name, minPlayers, maxPlayers, numImpostors } = req.body;
+    const { name, minPlayers, maxPlayers, numImpostors, isPrivate } = req.body;
     const userId = req.user.id;
     const username = req.user.username;
 
@@ -53,6 +53,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       minPlayers,
       maxPlayers,
       numImpostors,
+      isPrivate: isPrivate || false,
     });
 
     res.status(201).json({
@@ -99,19 +100,39 @@ router.post('/join', authenticateToken, async (req, res) => {
       });
     }
 
-    // Verificar que la sala existe
-    const room = await Room.findById(roomId);
+    // Detectar si es un código corto (6 caracteres) o UUID completo
+    // Normalizar: remover guiones y espacios
+    const normalizedCode = String(roomId).trim().replace(/-/g, '');
+    const isShortCode = normalizedCode.length === 6;
 
-    if (!room) {
-      return res.status(404).json({
-        error: 'Sala no encontrada',
-        message: 'La sala especificada no existe',
-      });
+    let room;
+    let actualRoomId;
+
+    if (isShortCode) {
+      // Buscar por prefijo (código corto)
+      room = await Room.findByCodePrefix(normalizedCode);
+      if (!room) {
+        return res.status(404).json({
+          error: 'Sala no encontrada',
+          message: 'No se encontró ninguna sala con ese código',
+        });
+      }
+      actualRoomId = room.id;
+    } else {
+      // Buscar por UUID completo
+      room = await Room.findById(roomId);
+      if (!room) {
+        return res.status(404).json({
+          error: 'Sala no encontrada',
+          message: 'La sala especificada no existe',
+        });
+      }
+      actualRoomId = room.id;
     }
 
     // Si el usuario ya está en la sala, permitir reconexión
     // (por ejemplo tras refrescar la página y perder el socket previo)
-    if (await Room.isPlayerInRoom(roomId, userId)) {
+    if (await Room.isPlayerInRoom(actualRoomId, userId)) {
       return res.json({
         message: 'Reconexión a sala exitosa',
         room: room,
@@ -131,6 +152,14 @@ router.post('/join', authenticateToken, async (req, res) => {
       return res.status(400).json({
         error: 'Sala no disponible',
         message: 'La sala no está esperando jugadores',
+      });
+    }
+
+    // Validar que si la sala es privada, el join se haga por código corto
+    if (room.isPrivate && !isShortCode) {
+      return res.status(403).json({
+        error: 'Sala privada',
+        message: 'Esta sala es privada. Debes usar el código de 6 caracteres para unirte.',
       });
     }
 

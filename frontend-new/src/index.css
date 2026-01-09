@@ -1,0 +1,133 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  /* Purple Reign Color Palette - Mystery & Intrigue */
+
+  /* Primary Colors - Mapeados a clases estándar de Tailwind */
+  --color-primary: #a855f7; /* bg-primary, text-primary, border-primary */
+  --color-primary-hover: #9333ea; /* hover:bg-primary-hover */
+  --color-primary-light: #c084fc; /* bg-primary-light */
+
+  /* Semantic Colors - Mapeados a clases estándar */
+  --color-success: #34d399; /* bg-success, text-success, border-success */
+  --color-warning: #fbbf24; /* bg-warning, text-warning, border-warning */
+  --color-danger: #f43f5e; /* bg-danger, text-danger, border-danger */
+  --color-destructive: #f43f5e; /* bg-destructive, text-destructive (shadcn/ui) */
+
+  /* Background Colors - Mapeados a clases estándar */
+  --color-background: #120a1f; /* bg-background */
+  --color-card: #1e1433; /* bg-card */
+  --color-muted: #2a1f42; /* bg-muted */
+  --color-input: #2a1f42; /* bg-input */
+  --color-hover: #332952; /* bg-hover */
+
+  /* Text Colors - Mapeados a clases estándar */
+  --color-foreground: #f5f3ff; /* text-foreground */
+  --color-muted-foreground: #a78bce; /* text-muted-foreground */
+  --color-secondary-foreground: #7c6b9a; /* text-secondary-foreground */
+  --color-card-foreground: #f5f3ff; /* text-card-foreground */
+  --color-primary-foreground: #f5f3ff; /* text-primary-foreground */
+  --color-destructive-foreground: #f5f3ff; /* text-destructive-foreground */
+
+  /* Secondary Colors - Para shadcn/ui */
+  --color-secondary: #2a1f42; /* bg-secondary */
+  --color-secondary-foreground: #f5f3ff; /* text-secondary-foreground */
+
+  /* Border Colors - Mapeados a clases estándar */
+  --color-border: #2a1f42; /* border-border */
+  --color-ring: #a855f7; /* ring-ring (focus ring) */
+
+  /* Border Radius - Mapeados a clases estándar */
+  --radius-sm: 12px; /* rounded-sm */
+  --radius-md: 16px; /* rounded-md */
+  --radius-lg: 20px; /* rounded-lg */
+  --radius-xl: 24px; /* rounded-xl */
+  --radius-2xl: 32px; /* rounded-2xl */
+  --radius-full: 9999px; /* rounded-full */
+
+  /* Shadows - Mapeados a clases estándar */
+  --shadow-sm: 0 2px 8px rgba(168, 85, 247, 0.08); /* shadow-sm */
+  --shadow-md: 0 4px 16px rgba(168, 85, 247, 0.12); /* shadow-md */
+  --shadow-lg: 0 8px 24px rgba(168, 85, 247, 0.16); /* shadow-lg */
+  --shadow-xl: 0 12px 32px rgba(168, 85, 247, 0.2); /* shadow-xl */
+
+  /* Typography Scale */
+  --font-size-xs: 0.75rem; /* 12px - labels, captions */
+  --font-size-sm: 0.875rem; /* 14px - body small, helper text */
+  --font-size-base: 1rem; /* 16px - body text */
+  --font-size-lg: 1.125rem; /* 18px - emphasized text */
+  --font-size-xl: 1.25rem; /* 20px - card titles */
+  --font-size-2xl: 1.5rem; /* 24px - section headers */
+  --font-size-3xl: 1.875rem; /* 30px - page titles */
+  --font-size-4xl: 2.25rem; /* 36px - hero text (role reveal) */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+
+/* Legacy variables for backward compatibility (deprecated - use Tailwind classes instead) */
+:root {
+  /* These are kept for scrollbar and any remaining direct CSS usage */
+  --color-bg-card: #1e1433;
+  --color-bg-input: #2a1f42;
+  --color-bg-hover: #332952;
+  --color-border-hover: #3d2f5a;
+  --color-border-focus: #a855f7;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Scrollbar personalizado con tema Purple Reign */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-card);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-input);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-hover);
+}
+
+/* shadcn/ui compatibility layer - Usa valores del @theme */
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --card: var(--color-card);
+  --card-foreground: var(--color-card-foreground);
+  --popover: var(--color-card);
+  --popover-foreground: var(--color-foreground);
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-foreground);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-secondary-foreground);
+  --muted: var(--color-muted);
+  --muted-foreground: var(--color-muted-foreground);
+  --accent: var(--color-primary);
+  --accent-foreground: var(--color-primary-foreground);
+  --destructive: var(--color-destructive);
+  --destructive-foreground: var(--color-destructive-foreground);
+  --border: var(--color-border);
+  --input: var(--color-input);
+  --ring: var(--color-ring);
+  --radius: var(--radius-md);
+}
