@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Backend (Port 3001)
+
 ```bash
 cd backend
 npm install
@@ -25,6 +26,7 @@ npm run lint     # ESLint
 ```
 
 ### Frontend (Legacy - Not Active)
+
 ```bash
 cd frontend
 npm install
@@ -32,6 +34,7 @@ npm run dev      # http-server on port 5500
 ```
 
 ### Frontend-new (Active Migration)
+
 ```bash
 cd frontend-new
 npm install
@@ -57,6 +60,7 @@ Refer to `MIGRATION_PLAN.md` for detailed migration phases. Current status:
 ## Architecture
 
 ### Backend Architecture
+
 - **Express.js** server with Socket.io for real-time communication
 - **MongoDB** (Mongoose) for user/room persistence
 - **Redis** for session management and caching
@@ -64,6 +68,7 @@ Refer to `MIGRATION_PLAN.md` for detailed migration phases. Current status:
 - **Rate limiting** and CORS protection
 
 **Key Backend Files**:
+
 - `backend/server.js` - Main entry point
 - `backend/controllers/` - Business logic
 - `backend/models/` - Mongoose schemas
@@ -72,17 +77,20 @@ Refer to `MIGRATION_PLAN.md` for detailed migration phases. Current status:
 ### Frontend-new Architecture (React + TypeScript)
 
 **State Management**:
+
 - Central state managed via `useReducer` + Context API
 - `GameContext` (src/context/GameContext.ts) provides global game state
 - `gameReducer` (src/reducers/gameReducer.ts) handles state updates
 
 **Socket Communication**:
+
 - `SocketService` singleton (src/services/socket.ts) wraps Socket.io client
 - `useSocket` hook (src/hooks/useSocket.ts) connects components to socket events
 - Real-time events: room updates, phase changes, player actions, votes
 
 **Component Structure**:
-```
+
+```-
 src/
 ├── components/
 │   ├── auth/          # Login, Register
@@ -98,6 +106,7 @@ src/
 ```
 
 **TypeScript Types** (src/types/game.ts):
+
 - `Phase`: Game phases (waiting, roles, clues, voting, results, victory)
 - `Player`: Player info with role, status, score
 - `Room`: Room metadata, players list, settings
@@ -107,6 +116,7 @@ src/
 **Path Alias**: `@/` maps to `src/` (configured in vite.config.ts and tsconfig)
 
 ### Game Flow
+
 1. **Auth**: User logs in/registers → receives JWT token
 2. **Room Selection**: Create room, join by code, or discover public rooms
 3. **Lobby**: Players gather, host starts game when ready
@@ -119,8 +129,10 @@ src/
 ## Environment Configuration
 
 ### Backend (.env)
+
 Required variables (see `backend/.env.example`):
-```
+
+```-
 PORT=3001
 JWT_SECRET=your_secret_here
 MONGODB_URI=mongodb://localhost:27017/impostor
@@ -131,7 +143,8 @@ ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 **Note**: Backend runs on port 3001 (not 3000 as mentioned in older docs)
 
 ### Frontend-new (.env)
-```
+
+```-
 VITE_SERVER_URL=http://localhost:3000
 ```
 
@@ -140,6 +153,7 @@ VITE_SERVER_URL=http://localhost:3000
 ## Key Integration Points
 
 ### Socket.io Events (Backend → Frontend)
+
 - `connect` / `disconnect` - Connection status
 - `loginSuccess` / `registerSuccess` - Auth responses
 - `roomCreated` / `roomJoined` - Room lifecycle
@@ -149,6 +163,7 @@ VITE_SERVER_URL=http://localhost:3000
 - `gameOver` - End game with results
 
 ### Socket.io Events (Frontend → Backend)
+
 - `login` / `register` - Authentication
 - `createRoom` / `joinRoom` / `listRooms` - Room management
 - `startGame` / `submitClue` / `submitVote` - Game actions
@@ -159,6 +174,7 @@ VITE_SERVER_URL=http://localhost:3000
 **Current Stack**: Tailwind CSS 4.x with `@tailwindcss/vite` plugin
 
 **Design Approach**: Clean, minimalist interface with solid colors
+
 - No animations library (Framer Motion removed)
 - Solid color backgrounds instead of gradients
 - Simple CSS transitions (150ms duration)
@@ -167,6 +183,7 @@ VITE_SERVER_URL=http://localhost:3000
 - Lucide React icons (installed)
 
 **Color Palette** (Minimalist - Solid Colors):
+
 ```css
 --color-primary: #5b7fff      /* Soft blue - main accent */
 --color-success: #22c55e      /* Green - success states */
@@ -180,6 +197,7 @@ VITE_SERVER_URL=http://localhost:3000
 ```
 
 **Design Principles**:
+
 - Instant interactions (no entrance animations)
 - Solid colors with opacity variants (e.g., `bg-primary/20`)
 - Consistent border-radius: `rounded-2xl` (buttons/inputs), `rounded-3xl` (cards)
@@ -204,6 +222,7 @@ VITE_SERVER_URL=http://localhost:3000
 ## Dependencies
 
 ### Frontend-new Key Libraries
+
 - `react` 19.x - UI framework
 - `socket.io-client` 4.x - WebSocket client
 - `tailwindcss` 4.x - Styling (minimalist approach)
@@ -212,6 +231,7 @@ VITE_SERVER_URL=http://localhost:3000
 - `vitest` + `@testing-library/react` - Testing
 
 ### Backend Key Libraries
+
 - `express` - HTTP server
 - `socket.io` - WebSocket server
 - `mongoose` - MongoDB ORM
