@@ -15,9 +15,7 @@ const AuthScreen = () => {
 
         {/* Title Section */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-foreground">
-            {isLogin ? 'Impostor' : 'Únete al Juego'}
-          </h1>
+          <h1 className="text-3xl font-bold mb-2 text-foreground">{isLogin ? 'Impostor' : 'Únete al Juego'}</h1>
           <p className="text-muted-foreground text-sm">
             {isLogin ? 'Inicia sesión para descubrir quién es el impostor' : 'Crea tu cuenta y empieza a jugar'}
           </p>

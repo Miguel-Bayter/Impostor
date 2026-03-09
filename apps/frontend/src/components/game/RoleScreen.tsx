@@ -64,17 +64,11 @@ const RoleScreen = () => {
                   isImpostor ? 'bg-danger/20 border-danger' : 'bg-success/20 border-success'
                 }`}
               >
-                {isImpostor ? (
-                  <Shield className="w-16 h-16 text-danger" />
-                ) : (
-                  <Eye className="w-16 h-16 text-success" />
-                )}
+                {isImpostor ? <Shield className="w-16 h-16 text-danger" /> : <Eye className="w-16 h-16 text-success" />}
               </div>
 
               <div className="text-center space-y-3">
-                <h3 className="text-4xl font-bold text-foreground">
-                  {isImpostor ? '🎭 IMPOSTOR' : '👥 CIUDADANO'}
-                </h3>
+                <h3 className="text-4xl font-bold text-foreground">{isImpostor ? '🎭 IMPOSTOR' : '👥 CIUDADANO'}</h3>
 
                 {!isImpostor && gameState.secretWord && (
                   <div className="mt-6 p-4 bg-hover border-2 border-success rounded-lg shadow-lg">

@@ -33,11 +33,17 @@ Run from repository root.
 - Build:
   - `pnpm --filter ./apps/frontend build`
 - Type-check:
-  - `pnpm --filter ./apps/frontend type-check`
-- Lint:
-  - `pnpm --filter ./apps/frontend lint`
+  - `pnpm --filter ./apps/frontend types:check`
+- Validate:
+  - `pnpm --filter ./apps/frontend validate`
+- Lint check:
+  - `pnpm --filter ./apps/frontend lint:check`
 - Lint fix:
   - `pnpm --filter ./apps/frontend lint:fix`
+- Format check:
+  - `pnpm --filter ./apps/frontend format:check`
+- Format fix:
+  - `pnpm --filter ./apps/frontend format:fix`
 - Tests:
   - `pnpm --filter ./apps/frontend test`
 
@@ -72,7 +78,7 @@ Single test examples:
 
 - Change matches `./ARCHITECTURE.md` flow and boundaries.
 - Naming follows `./NAMING_CONVENTIONS.md`.
-- Type-check passes.
+- `types:check` passes.
 - Lint passes.
 - Relevant tests pass.
 - Shared contracts updated in `packages/types` if payloads changed.

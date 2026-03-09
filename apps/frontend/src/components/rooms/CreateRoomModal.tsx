@@ -56,10 +56,7 @@ const CreateRoomModal = ({ onClose }: CreateRoomModalProps) => {
       <div className="bg-card p-8 rounded-2xl border border-border max-w-lg w-full shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-foreground">Crear Nueva Sala</h3>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-hover rounded-md transition-colors duration-150"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-hover rounded-md transition-colors duration-150">
             <X className="w-5 h-5" />
           </button>
         </div>

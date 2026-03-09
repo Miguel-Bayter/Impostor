@@ -56,17 +56,12 @@ const JoinRoomByCode = ({ onClose }: JoinRoomByCodeProps) => {
       <div className="bg-card p-8 rounded-2xl border border-border max-w-md w-full shadow-xl">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl font-bold text-foreground">Unirse por Código</h3>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-hover rounded-md transition-colors duration-150"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-hover rounded-md transition-colors duration-150">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <p className="text-muted-foreground mb-6 text-sm">
-          Ingresa el código de 6 caracteres de la sala
-        </p>
+        <p className="text-muted-foreground mb-6 text-sm">Ingresa el código de 6 caracteres de la sala</p>
 
         {error && (
           <div className="mb-4 p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">
