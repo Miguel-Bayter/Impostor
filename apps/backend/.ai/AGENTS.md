@@ -33,11 +33,17 @@ Run from repository root.
 - Build:
   - `pnpm --filter ./apps/backend build`
 - Type-check:
-  - `pnpm --filter ./apps/backend check-types`
-- Lint (fix):
-  - `pnpm --filter ./apps/backend lint`
+  - `pnpm --filter ./apps/backend types:check`
+- Validate:
+  - `pnpm --filter ./apps/backend validate`
 - Lint (check):
-  - `pnpm --filter ./apps/backend check-lint`
+  - `pnpm --filter ./apps/backend lint:check`
+- Lint (fix):
+  - `pnpm --filter ./apps/backend lint:fix`
+- Format (check):
+  - `pnpm --filter ./apps/backend format:check`
+- Format (fix):
+  - `pnpm --filter ./apps/backend format:fix`
 - Tests:
   - `pnpm --filter ./apps/backend test`
 - E2E tests:
@@ -75,7 +81,7 @@ Single test examples:
 
 - Change matches `./ARCHITECTURE.md` boundaries.
 - Naming follows `./NAMING_CONVENTIONS.md`.
-- `check-types` passes.
+- `types:check` passes.
 - Lint passes.
 - Relevant tests pass.
 - Shared contracts updated in `packages/types` if backend/frontend payload changed.

@@ -54,11 +54,7 @@ const Lobby = () => {
                   className="flex items-center gap-2 px-3 py-1.5 bg-input hover:bg-hover border border-border rounded-md transition-all duration-150 active:scale-[0.98]"
                 >
                   <span className="font-mono font-bold text-foreground">#{room.code}</span>
-                  {copiedCode ? (
-                    <Check className="w-4 h-4 text-success" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
+                  {copiedCode ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
                 </button>
               )}
             </div>

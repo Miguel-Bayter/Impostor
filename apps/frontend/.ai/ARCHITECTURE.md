@@ -131,4 +131,4 @@ When adding a new frontend capability:
 4. Implement/adjust components.
 5. Add toast/error handling.
 6. Add targeted tests.
-7. Run lint/type-check/test for frontend package.
+7. Run validate (or format:check/lint:check/types:check/test) for frontend package.

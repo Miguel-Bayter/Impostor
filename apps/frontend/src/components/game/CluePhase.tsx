@@ -44,9 +44,7 @@ const CluePhase = () => {
     <div className="w-full max-w-4xl mx-auto space-y-6 p-6">
       <div className="text-center space-y-2">
         <h2 className="text-3xl font-bold text-foreground">🧩 Ronda de Pistas</h2>
-        <p className="text-muted-foreground">
-          Cada jugador debe dar una pista relacionada con la palabra secreta
-        </p>
+        <p className="text-muted-foreground">Cada jugador debe dar una pista relacionada con la palabra secreta</p>
       </div>
 
       {/* Turno Actual */}
@@ -57,9 +55,7 @@ const CluePhase = () => {
       >
         <div className="flex items-center gap-3 mb-4">
           <Clock className="w-5 h-5 text-primary" />
-          <h3 className="font-bold text-lg text-foreground">
-            {isMyTurn ? '¡Es tu turno!' : 'Esperando turno...'}
-          </h3>
+          <h3 className="font-bold text-lg text-foreground">{isMyTurn ? '¡Es tu turno!' : 'Esperando turno...'}</h3>
         </div>
 
         {isMyTurn && !hasSubmittedClue ? (

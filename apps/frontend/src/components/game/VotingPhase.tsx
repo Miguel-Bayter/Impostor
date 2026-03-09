@@ -46,10 +46,7 @@ const VotingPhase = () => {
         <h3 className="text-lg font-bold mb-4 text-foreground">📝 Pistas de la Ronda</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {gameState.clues.map((clue, index) => (
-            <div
-              key={`${clue.playerId}-${index}`}
-              className="p-3 bg-hover/30 rounded-lg border border-border"
-            >
+            <div key={`${clue.playerId}-${index}`} className="p-3 bg-hover/30 rounded-lg border border-border">
               <p className="text-xs text-muted-foreground mb-1">{clue.playerName}</p>
               <p className="font-semibold text-foreground">{clue.clue}</p>
             </div>
@@ -99,9 +96,7 @@ const VotingPhase = () => {
       ) : (
         <div className="bg-success/20 border border-success/30 p-8 rounded-2xl text-center shadow-md">
           <CheckCircle2 className="w-16 h-16 text-success mx-auto mb-4" />
-          <h3 className="text-2xl font-bold mb-2 text-foreground">
-            ¡Voto Registrado!
-          </h3>
+          <h3 className="text-2xl font-bold mb-2 text-foreground">¡Voto Registrado!</h3>
           <p className="text-muted-foreground">Esperando a que los demás jugadores voten...</p>
         </div>
       )}

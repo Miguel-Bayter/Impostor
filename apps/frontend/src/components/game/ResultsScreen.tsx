@@ -21,16 +21,10 @@ const ResultsScreen = () => {
       <div className="text-center space-y-6">
         <div
           className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center border-4 shadow-xl ${
-            citizensWon
-              ? 'bg-success/20 border-success'
-              : 'bg-danger/20 border-danger'
+            citizensWon ? 'bg-success/20 border-success' : 'bg-danger/20 border-danger'
           }`}
         >
-          {citizensWon ? (
-            <Trophy className="w-16 h-16 text-success" />
-          ) : (
-            <XCircle className="w-16 h-16 text-danger" />
-          )}
+          {citizensWon ? <Trophy className="w-16 h-16 text-success" /> : <XCircle className="w-16 h-16 text-danger" />}
         </div>
 
         <div>
@@ -46,9 +40,7 @@ const ResultsScreen = () => {
       {/* Información del Impostor */}
       {gameState.impostorId && (
         <div className="bg-card p-6 rounded-2xl border border-border shadow-md">
-          <h3 className="text-xl font-bold mb-4 text-center text-foreground">
-            🎭 El Impostor Era...
-          </h3>
+          <h3 className="text-xl font-bold mb-4 text-center text-foreground">🎭 El Impostor Era...</h3>
           <div className="flex items-center justify-center gap-4 p-6 bg-destructive/20 border border-destructive/30 rounded-lg">
             <div className="w-16 h-16 bg-destructive/30 rounded-full flex items-center justify-center font-bold text-2xl border-2 border-destructive text-destructive">
               {room.players
@@ -77,9 +69,7 @@ const ResultsScreen = () => {
       {/* Resultados de Votación */}
       {Object.keys(gameState.votes).length > 0 && (
         <div className="bg-card p-6 rounded-2xl border border-border shadow-md">
-          <h3 className="text-xl font-bold mb-4 text-foreground">
-            📊 Resultados de la Votación
-          </h3>
+          <h3 className="text-xl font-bold mb-4 text-foreground">📊 Resultados de la Votación</h3>
           <div className="space-y-2">
             {Object.entries(
               Object.values(gameState.votes).reduce(
