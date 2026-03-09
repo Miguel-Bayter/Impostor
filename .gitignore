@@ -11,6 +11,9 @@ Thumbs.db
 # Logs generales
 *.log
 
+# Monorepo
+node_modules/
+
 # Cada proyecto tiene su propio .gitignore
 # Ver backend/.gitignore y frontend/.gitignore
 
