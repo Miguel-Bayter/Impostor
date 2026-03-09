@@ -8,8 +8,8 @@ const ResultsScreen = () => {
 
   if (!gameState || !room) return null;
 
-  const winners = gameState.winners;
-  const citizensWon = winners === 'citizens';
+  const winner = gameState.winner;
+  const citizensWon = winner === 'citizens';
 
   const handleNewGame = () => {
     const socket = socketService.getInstance().getSocket();

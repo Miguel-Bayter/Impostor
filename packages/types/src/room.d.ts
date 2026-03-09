@@ -1,5 +1,4 @@
 export interface SharedRoomPlayer {
-  id?: string;
   userId: string;
   username: string;
   socketId?: string | null;

@@ -10,7 +10,7 @@ const Lobby = () => {
 
   if (!room || !user) return null;
 
-  const isHost = room.hostId === user.id;
+  const isHost = room.hostId === user.userId;
   const canStart = room.players.length >= (room.minPlayers || 3);
 
   const handleCopyCode = async () => {
@@ -90,9 +90,9 @@ const Lobby = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {room.players.map((player) => (
             <div
-              key={player.id}
+              key={player.userId}
               className={`p-4 rounded-lg border transition-all duration-150 ${
-                player.userId === user.id
+                player.userId === user.userId
                   ? 'bg-primary/10 border-primary/40 shadow-sm'
                   : 'bg-hover/20 border-border hover:bg-hover/30'
               }`}

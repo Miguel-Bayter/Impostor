@@ -20,7 +20,7 @@ export interface ServerToClientEvents {
 
   // Room events
   'room:joined': (data: { room: Room }) => void;
-  'room:left': (data: { room: Room }) => void;
+  'room:left': (data: { room?: Room | null; success?: boolean }) => void;
   'room:closed': (data: { message: string }) => void;
   'room:playerJoined': (data: { player: Player; room: Room }) => void;
   'room:playerLeft': (data: { player: Player; room: Room }) => void;
@@ -36,13 +36,13 @@ export interface ServerToClientEvents {
   'game:votingResults': (data: {
     results: { playerId: string; votes: number }[];
     eliminatedPlayer?: Player;
-    victoryCheck?: { winner: 'citizens' | 'impostors' };
+    victoryCheck?: { winner: 'citizens' | 'impostor' };
     isTieResolution?: boolean;
   }) => void;
   'game:tie': (data: { tiedPlayers: Player[] }) => void;
   'game:phaseChanged': (data: { phase: Phase; message?: string }) => void;
   'game:wordGuessed': (data: { message: string }) => void;
-  'game:victory': (data: { winner: 'citizens' | 'impostors' }) => void;
+  'game:victory': (data: { winner: 'citizens' | 'impostor' }) => void;
   'game:error': (data: { error: string; message: string }) => void;
 
   // Test event
@@ -91,7 +91,7 @@ export type SharedAuthErrorResponse = SharedAuthError;
 export type VotingResultsData = {
   results: { playerId: string; votes: number }[];
   eliminatedPlayer?: Player;
-  victoryCheck?: { winner: 'citizens' | 'impostors' };
+  victoryCheck?: { winner: 'citizens' | 'impostor' };
   isTieResolution?: boolean;
 };
 
@@ -120,7 +120,7 @@ export interface SocketEvents {
   phaseChanged: { phase: Phase; message?: string };
   wordGuessed: { message: string };
   gameTie: { tiedPlayers: Player[] };
-  gameVictory: { winner: 'citizens' | 'impostors' };
+  gameVictory: { winner: 'citizens' | 'impostor' };
 }
 
 /**

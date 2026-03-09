@@ -14,9 +14,9 @@ const RoleScreen = () => {
 
   if (!gameState || !user || !room) return null;
 
-  const currentPlayer = room.players.find((p) => p.userId === user.id);
+  const currentPlayer = room.players.find((p) => p.userId === user.userId);
   const isImpostor = currentPlayer?.isImpostor || false;
-  const isHost = room.hostId === user.id;
+  const isHost = room.hostId === user.userId;
 
   const handleStartCluesPhase = () => {
     setStarting(true);

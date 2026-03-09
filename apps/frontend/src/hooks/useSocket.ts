@@ -122,7 +122,7 @@ export const useSocket = () => {
     });
 
     // 16. Evento: GameVictory
-    socketClient.on('gameVictory', (data: { winner: 'citizens' | 'impostors' }) => {
+    socketClient.on('gameVictory', (data: { winner: 'citizens' | 'impostor' }) => {
       dispatch({ type: 'SET_PHASE', payload: 'victory' });
       const message = data.winner === 'citizens' ? '🏆 ¡Ganaron los Ciudadanos!' : '🕵️ ¡Ganó el Impostor!';
       toast.success(message);

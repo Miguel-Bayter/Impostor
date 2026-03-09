@@ -12,6 +12,7 @@ Escalar el repositorio a una estructura monorepo clara y sostenible:
 - Estructura final activa validada en `apps/*` y `packages/types`.
 - `@impostor/types` integrado en backend y frontend con adopcion incremental en curso.
 - Validacion tecnica ejecutada desde root: build, lint, test y type-check en verde.
+- Contratos canonicos fijados para interoperabilidad: `userId` y `winner`.
 
 ## Decisiones clave
 

@@ -14,7 +14,7 @@ const VotingPhase = () => {
 
   if (!gameState || !user || !room) return null;
 
-  const hasVoted = user.id in gameState.votes;
+  const hasVoted = user.userId in gameState.votes;
   const alivePlayers = room.players.filter((p) => p.isAlive);
 
   const handleVote = () => {
@@ -65,14 +65,14 @@ const VotingPhase = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
             {alivePlayers.map((player) => (
               <button
-                key={player.id}
+                key={player.userId}
                 onClick={() => setSelectedPlayer(player.userId)}
-                disabled={player.userId === user.id}
+                disabled={player.userId === user.userId}
                 className={`p-4 rounded-lg border-2 transition-all duration-150 ${
                   selectedPlayer === player.userId
                     ? 'bg-primary/20 border-primary shadow-sm'
                     : 'bg-hover/20 border-border hover:border-primary/30 hover:bg-hover/30'
-                } ${player.userId === user.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}`}
+                } ${player.userId === user.userId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}`}
               >
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-12 h-12 bg-linear-to-br from-primary to-primary-light rounded-full flex items-center justify-center font-bold text-lg text-white border-2 border-border">
@@ -80,7 +80,7 @@ const VotingPhase = () => {
                   </div>
                   <p className="font-semibold text-sm text-center text-foreground">
                     {player.username}
-                    {player.userId === user.id && ' (Tú)'}
+                    {player.userId === user.userId && ' (Tú)'}
                   </p>
                   {selectedPlayer === player.userId && <CheckCircle2 className="w-5 h-5 text-primary" />}
                 </div>

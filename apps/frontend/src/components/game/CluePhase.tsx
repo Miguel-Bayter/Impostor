@@ -12,9 +12,9 @@ const CluePhase = () => {
 
   if (!gameState || !user || !room) return null;
 
-  const currentPlayerIndex = room.players.findIndex((p) => p.userId === user.id);
+  const currentPlayerIndex = room.players.findIndex((p) => p.userId === user.userId);
   const isMyTurn = gameState.currentTurn === currentPlayerIndex;
-  const hasSubmittedClue = gameState.clues.some((c) => c.playerId === user.id);
+  const hasSubmittedClue = gameState.clues.some((c) => c.playerId === user.userId);
 
   const handleSubmitClue = () => {
     if (!clueText.trim()) {

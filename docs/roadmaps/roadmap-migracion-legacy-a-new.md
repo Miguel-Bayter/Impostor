@@ -20,6 +20,10 @@ Estructura objetivo:
 - Fase 4 (adopcion de tipos compartidos): continuada con contratos ampliados en `packages/types` y adaptacion de tipos frontend/backend.
 - Fase 5 (validacion tecnica): ejecutada desde root con `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm type-check`.
 
+Decisiones de contrato vigentes:
+- Identificador de usuario canonico: `userId`.
+- Resultado de partida canonico: `winner` (singular).
+
 ---
 
 ## 2) Alcance

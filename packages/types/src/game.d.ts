@@ -9,7 +9,7 @@ export type SharedGamePhase =
   | 'victory'
   | 'tie-breaker';
 
-export type SharedWinner = 'citizens' | 'impostor' | 'impostors' | null;
+export type SharedWinner = 'citizens' | 'impostor' | null;
 
 export interface SharedClue {
   playerId: string;
@@ -27,6 +27,5 @@ export interface SharedGameState {
   clues: SharedClue[];
   votes: Record<string, string>;
   winner?: SharedWinner;
-  winners?: Exclude<SharedWinner, null>;
   impostorId?: string;
 }

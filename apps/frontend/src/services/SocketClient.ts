@@ -46,7 +46,7 @@ interface SocketCallbacks {
   onPhaseChanged?: (data: { phase: Phase; message?: string }) => void;
   onWordGuessed?: (data: { message: string }) => void;
   onGameTie?: (data: { tiedPlayers: Player[] }) => void;
-  onGameVictory?: (data: { winner: 'citizens' | 'impostors' }) => void;
+  onGameVictory?: (data: { winner: 'citizens' | 'impostor' }) => void;
 }
 
 // Conjunto de claves válidas de SocketCallbacks para validación en runtime
@@ -349,7 +349,7 @@ export class SocketClient {
       this.callbacks.onRoomState?.(data.room);
     });
 
-    this.socket.on('room:left', (data: { room: Room }) => {
+    this.socket.on('room:left', (data: { room?: Room | null; success?: boolean }) => {
       this.logger.debug('Salido de sala:', data);
       this.currentRoomId = null;
       try {
@@ -359,7 +359,7 @@ export class SocketClient {
         const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
         toast.error('Error al salir de la sala: ' + errorMsg);
       }
-      this.callbacks.onRoomState?.(data.room);
+      this.callbacks.onRoomState?.(data.room ?? null);
     });
 
     this.socket.on('room:closed', (data: { message: string }) => {
@@ -463,7 +463,7 @@ export class SocketClient {
       this.callbacks.onError?.(error);
     });
 
-    this.socket.on('game:victory', (data: { winner: 'citizens' | 'impostors' }) => {
+    this.socket.on('game:victory', (data: { winner: 'citizens' | 'impostor' }) => {
       this.logger.debug('Victoria recibida:', data);
       this.callbacks.onGameVictory?.(data);
     });
@@ -527,7 +527,7 @@ export class SocketClient {
         clearTimeout(timeoutId);
         cleanup();
 
-        this.userId = data.user.id;
+        this.userId = data.user.userId;
         this.username = data.user.username;
         this.token = data.token;
 
@@ -591,7 +591,7 @@ export class SocketClient {
         clearTimeout(timeoutId);
         cleanup();
 
-        this.userId = data.user.id;
+        this.userId = data.user.userId;
         this.username = data.user.username;
         this.token = data.token;
 
@@ -715,7 +715,7 @@ export class SocketClient {
       let user: User | undefined;
       try {
         user = await apiService.getMe();
-        this.userId = user.id;
+        this.userId = user.userId;
         this.username = user.username;
       } catch (e) {
         this.logger.warn('No se pudo obtener datos del usuario');
@@ -743,7 +743,7 @@ export class SocketClient {
         let user: User | undefined;
         try {
           user = await apiService.getMe();
-          this.userId = user.id;
+          this.userId = user.userId;
           this.username = user.username;
         } catch (e) {
           // Ignorar error de fetch
@@ -1076,9 +1076,9 @@ export class SocketClient {
   /**
    * Obtener información del usuario actual
    */
-  getCurrentUser(): { id: string | null; username: string | null } {
+  getCurrentUser(): { userId: string | null; username: string | null } {
     return {
-      id: this.userId,
+      userId: this.userId,
       username: this.username,
     };
   }

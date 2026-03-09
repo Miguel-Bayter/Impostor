@@ -10,13 +10,9 @@ import type {
 
 export type Phase = SharedGamePhase;
 
-export type User = Omit<SharedUserPayload, 'userId'> & {
-  id: string;
-  userId?: string;
-};
+export type User = SharedUserPayload;
 
 export type Player = SharedRoomPlayer & {
-  id: string;
   score: number;
 };
 
@@ -31,10 +27,9 @@ export type Room = Omit<SharedRoom, 'players'> & {
   players: Player[];
 };
 
-export type GameState = Omit<SharedGameState, 'players' | 'winner' | 'winners'> & {
+export type GameState = Omit<SharedGameState, 'players'> & {
   players?: Player[];
   winner?: SharedWinner;
-  winners?: 'citizens' | 'impostors';
 };
 
 export interface GameAction {

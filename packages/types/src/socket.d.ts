@@ -42,7 +42,7 @@ export interface SharedServerToClientEvents {
   'game:votingResults': (data: {
     results: { playerId: string; votes: number }[];
     eliminatedPlayer?: SharedRoomPlayer;
-    victoryCheck?: { winner: 'citizens' | 'impostors' };
+    victoryCheck?: { winner: 'citizens' | 'impostor' };
     isTieResolution?: boolean;
   }) => void;
   'game:tie': (data: { tiedPlayers: SharedRoomPlayer[] }) => void;
@@ -50,7 +50,7 @@ export interface SharedServerToClientEvents {
   'game:nextRound': (data: { gameState: SharedGameState }) => void;
   'game:phaseChanged': (data: { phase: SharedGamePhase; message?: string }) => void;
   'game:wordGuessed': (data: { message: string }) => void;
-  'game:victory': (data: { winner: 'citizens' | 'impostors' }) => void;
+  'game:victory': (data: { winner: 'citizens' | 'impostor' }) => void;
   'game:ended': (data: { success: boolean }) => void;
   'game:endSuccess': (data: { success: boolean }) => void;
   'game:error': (data: SharedGameError) => void;
