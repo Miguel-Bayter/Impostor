@@ -376,7 +376,7 @@ bootstrap();
 ## 📂 Current File Structure
 
 ```-
-backend-new/
+apps/backend/
 ├── src/
 │   ├── config/
 │   │   └── env.validation.ts ✅

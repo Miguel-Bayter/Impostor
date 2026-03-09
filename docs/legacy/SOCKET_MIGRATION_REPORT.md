@@ -2,7 +2,7 @@
 
 **Fecha:** 2025-12-20
 **Proyecto:** Impostor - Multiplayer Social Deduction Game
-**Directorio:** `frontend-new/`
+**Directorio:** `apps/frontend/`
 
 ---
 
@@ -630,21 +630,21 @@ this.connectMain(this.token).catch((error) => {
 
 ### 🔴 Inmediato (Esta Semana)
 
-**1. Habilitar ESLint** (frontend-new)
+**1. Habilitar ESLint** (apps/frontend)
 
 ```bash
-cd frontend-new
+cd apps/frontend
 # Descomentar eslint.config.js
 npm run lint -- --fix
 ```
 
-**2. Crear StorageService** (frontend-new)
+**2. Crear StorageService** (apps/frontend)
 
 - Archivo: `src/services/storage.ts`
 - Reemplazar 21 accesos a localStorage
 - Agregar fallbacks para entornos sin localStorage
 
-**3. Tipar Eventos Socket** (frontend-new)
+**3. Tipar Eventos Socket** (apps/frontend)
 
 - Eliminar 8 usos de `any`
 - Usar tipos de `ServerToClientEvents`
@@ -654,7 +654,7 @@ npm run lint -- --fix
 
 ### 🟡 Corto Plazo (2 Semanas)
 
-**4. Logger Centralizado** (frontend-new)
+**4. Logger Centralizado** (apps/frontend)
 
 ```typescript
 // services/logger.ts
@@ -668,13 +668,13 @@ export const logger = {
 };
 ```
 
-**5. Refactorizar Validación Token** (frontend-new)
+**5. Refactorizar Validación Token** (apps/frontend)
 
 - Usar `apiService.verifyToken()` en vez de fetch directo
 - Centralizar lógica de token inválido
 - Eliminar duplicación de código
 
-**6. Tests Unitarios** (frontend-new)
+**6. Tests Unitarios** (apps/frontend)
 
 - Configurar Vitest (ya en package.json)
 - Tests para `apiService`
@@ -685,7 +685,7 @@ export const logger = {
 
 ### 🟢 Medio Plazo (1 Mes)
 
-**7. Mejorar ErrorBoundary** (frontend-new)
+**7. Mejorar ErrorBoundary** (apps/frontend)
 
 ```typescript
 // main.tsx
@@ -740,7 +740,7 @@ const TIMEOUTS = {
 - ❌ Callbacks sin tipos
 - ❌ Sin ErrorBoundary
 
-### Después (frontend-new/)
+### Después (apps/frontend/)
 - ✅ TypeScript con tipos estrictos
 - ✅ Axios con interceptors robustos
 - ✅ Manejo de errores centralizado

@@ -11,7 +11,7 @@ Guidance for coding agents working in `apps/frontend`.
 
 - Primary scope: `apps/frontend/**`.
 - Shared contract scope when needed: `packages/types/**`.
-- Out of scope unless explicitly requested: `deprecated/**` and unrelated backend changes.
+- Out of scope unless explicitly requested: unrelated backend changes.
 
 ## 3) Primary References
 

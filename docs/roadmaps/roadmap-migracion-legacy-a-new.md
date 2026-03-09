@@ -5,14 +5,20 @@
 Consolidar el proyecto en un monorepo con pnpm usando una estructura escalable:
 - Apps activas en `apps/`.
 - Tipos compartidos iniciales en `packages/types`.
-- Codigo legacy preservado en `deprecated/`.
+- Sin dependencias de rutas legacy en `deprecated/` (el directorio fue eliminado).
 
 Estructura objetivo:
-- `apps/backend` (antes `backend-new`)
-- `apps/frontend` (antes `frontend-new`)
-- `deprecated/backend` (legacy)
-- `deprecated/frontend` (legacy)
+- `apps/backend`
+- `apps/frontend`
 - `packages/types` (shared contracts)
+
+## Estado de avance (2026-03-08)
+
+- Fase 1 (estructura): completada.
+- Fase 2 (workspace pnpm): completada.
+- Fase 3 (`packages/types`): completada y consumida por backend/frontend.
+- Fase 4 (adopcion de tipos compartidos): continuada con contratos ampliados en `packages/types` y adaptacion de tipos frontend/backend.
+- Fase 5 (validacion tecnica): ejecutada desde root con `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm type-check`.
 
 ---
 
@@ -28,7 +34,7 @@ Estructura objetivo:
 ### No incluye
 - Migrar toda la logica a paquetes compartidos.
 - Crear mas paquetes (config-eslint, config-ts, utils, ui) en esta fase.
-- Eliminar definitivamente `deprecated/*`.
+- Recuperar o reintroducir codigo legacy eliminado.
 
 ---
 
@@ -41,8 +47,7 @@ Estructura objetivo:
 - Paquetes compartidos:
   - `packages/types`
 - Historico:
-  - `deprecated/backend`
-  - `deprecated/frontend`
+  - Carpeta `deprecated/` eliminada del repositorio.
 
 Estrategia funcional:
 - Salas y juego: WebSocket-first.
@@ -58,7 +63,7 @@ Estrategia funcional:
 ### Tareas
 - Crear `apps/`.
 - Mover apps activas a `apps/backend` y `apps/frontend`.
-- Mover legacy a `deprecated/backend` y `deprecated/frontend`.
+- Validar que no queden referencias activas a `deprecated/`.
 
 ### Criterio de salida
 - No existen carpetas activas en raiz tipo `backend/` o `frontend/`.
@@ -152,7 +157,7 @@ Estrategia funcional:
 
 La migracion queda completa cuando:
 1. Apps activas residen solo en `apps/backend` y `apps/frontend`.
-2. Legacy queda en `deprecated/*`.
+2. No existe carpeta `deprecated/` ni referencias activas a esa ruta.
 3. Workspace pnpm opera con `apps/*` y `packages/*`.
 4. `packages/types` existe y es consumible por backend y frontend.
 5. Build/lint/test/type-check se ejecutan desde la raiz.

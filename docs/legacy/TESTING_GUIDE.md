@@ -322,7 +322,7 @@ Server → All: game:phaseChanged { phase: 'results' | 'victory' }
 netstat -ano | findstr :3001
 
 # Restart backend
-cd backend-new
+cd apps/backend
 npm run start:dev
 ```
 
@@ -333,7 +333,7 @@ npm run start:dev
 netstat -ano | findstr :5173
 
 # Restart frontend
-cd frontend-new
+cd apps/frontend
 npm run dev
 ```
 

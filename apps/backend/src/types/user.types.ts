@@ -1,10 +1,6 @@
-import type { SharedUserPayload } from '@impostor/types';
+import type { SharedAuthResponse, SharedUserPayload } from '@impostor/types';
 
-export interface UserPayload {
-  userId: string;
-  username: string;
-  email: string;
-}
+export type UserPayload = SharedUserPayload;
 
 export type UserPayloadContract = SharedUserPayload;
 
@@ -15,7 +11,4 @@ export interface JwtPayload {
   exp: number;
 }
 
-export interface AuthResponse {
-  user: UserPayload;
-  token: string;
-}
+export type AuthResponse = SharedAuthResponse;

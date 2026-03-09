@@ -166,7 +166,7 @@ grep -r "framer-motion" src/
 
 Si deseas personalizar más el diseño:
 
-1. **Ajustar colores**: Edita `frontend-new/src/index.css` (líneas 6-26)
+1. **Ajustar colores**: Edita `apps/frontend/src/index.css` (líneas 6-26)
 2. **Cambiar velocidad de transiciones**: Busca `duration-150` y reemplaza por `duration-200` o `duration-100`
 3. **Añadir efectos sutiles**: Puedes agregar `hover:scale-105 transition-transform` para efectos mínimos
 

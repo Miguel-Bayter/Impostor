@@ -1,4 +1,5 @@
 export interface SharedRoomPlayer {
+  id?: string;
   userId: string;
   username: string;
   socketId?: string | null;
@@ -7,6 +8,8 @@ export interface SharedRoomPlayer {
   isReady?: boolean;
   isAlive?: boolean;
   isConnected?: boolean;
+  score?: number;
+  isImpostor?: boolean;
 }
 
 export interface SharedRoomSettings {

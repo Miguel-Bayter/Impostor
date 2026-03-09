@@ -1,3 +1,5 @@
+import type { SharedRoomPlayer } from './room';
+
 export type SharedGamePhase =
   | 'waiting'
   | 'roles'
@@ -18,6 +20,7 @@ export interface SharedClue {
 export interface SharedGameState {
   roomId: string;
   phase: SharedGamePhase;
+  players?: SharedRoomPlayer[];
   currentTurn?: number;
   currentRound?: number;
   secretWord?: string | null;

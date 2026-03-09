@@ -5,7 +5,13 @@
 Escalar el repositorio a una estructura monorepo clara y sostenible:
 - Apps activas en `apps/backend` y `apps/frontend`.
 - Contratos compartidos iniciales en `packages/types`.
-- Legacy resguardado en `deprecated/`.
+- Sin rutas activas a `deprecated/` (el directorio fue eliminado).
+
+## Estado actual (2026-03-08)
+
+- Estructura final activa validada en `apps/*` y `packages/types`.
+- `@impostor/types` integrado en backend y frontend con adopcion incremental en curso.
+- Validacion tecnica ejecutada desde root: build, lint, test y type-check en verde.
 
 ## Decisiones clave
 
@@ -18,7 +24,7 @@ Escalar el repositorio a una estructura monorepo clara y sostenible:
 
 ### Fase 1 - Estructura
 - Mover apps activas a `apps/`.
-- Mantener legacy en `deprecated/`.
+- Validar que no existan referencias activas a `deprecated/`.
 
 ### Fase 2 - Workspace
 - Actualizar `pnpm-workspace.yaml` a `apps/*` y `packages/*`.
@@ -38,7 +44,7 @@ Escalar el repositorio a una estructura monorepo clara y sostenible:
 
 ## Criterios de exito
 
-- Estructura final: `apps/*`, `packages/types`, `deprecated/*`.
+- Estructura final: `apps/*` y `packages/types` (sin `deprecated/*`).
 - Scripts root pnpm operativos para todo el equipo.
 - Contratos compartidos disponibles y usados en ambos proyectos.
 - Sin regresiones funcionales en flujo principal.
