@@ -1,0 +1,13 @@
+{
+  "name": "impostor-monorepo",
+  "private": true,
+  "packageManager": "pnpm@10.6.3",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter ./apps/backend --filter ./apps/frontend run dev",
+    "build": "pnpm -r --filter ./apps/backend --filter ./apps/frontend run build",
+    "lint": "pnpm -r --filter ./apps/backend --filter ./apps/frontend run lint",
+    "test": "pnpm -r --filter ./apps/backend --filter ./apps/frontend run test",
+    "type-check": "pnpm --filter ./apps/backend run check-types && pnpm --filter ./apps/frontend run type-check",
+    "format": "pnpm -r --filter ./apps/backend --filter ./apps/frontend run format"
+  }
+}
