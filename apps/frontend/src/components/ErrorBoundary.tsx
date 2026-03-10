@@ -1,7 +1,7 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Logger } from '@/services/Logger';
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Logger } from "@/services/Logger";
 
-const logger = new Logger('ErrorBoundary');
+const logger = new Logger("ErrorBoundary");
 
 interface Props {
   children: ReactNode;
@@ -23,7 +23,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logger.error('ErrorBoundary caught error:', error, {
+    logger.error("ErrorBoundary caught error:", error, {
       componentStack: errorInfo.componentStack,
     });
   }
@@ -34,7 +34,7 @@ class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="text-center space-y-4 max-w-md px-4">
             <h1 className="text-2xl font-bold text-destructive">Algo salió mal</h1>
-            <p className="text-muted-foreground">{this.state.error?.message || 'Error desconocido'}</p>
+            <p className="text-muted-foreground">{this.state.error?.message || "Error desconocido"}</p>
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors duration-150"

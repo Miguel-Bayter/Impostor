@@ -1,8 +1,8 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { WsException } from '@nestjs/websockets';
-import { JwtService } from '@nestjs/jwt';
-import { Socket } from 'socket.io';
-import { JwtPayload } from '../../types/user.types';
+import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
+import { WsException } from "@nestjs/websockets";
+import { JwtService } from "@nestjs/jwt";
+import { Socket } from "socket.io";
+import { JwtPayload } from "../../types/user.types";
 
 interface SocketWithAuth extends Socket {
   data: {
@@ -19,7 +19,7 @@ export class WsJwtGuard implements CanActivate {
     const token = this.extractToken(client);
 
     if (!token) {
-      throw new WsException('No token provided');
+      throw new WsException("No token provided");
     }
 
     try {
@@ -27,7 +27,7 @@ export class WsJwtGuard implements CanActivate {
       client.data.user = payload;
       return true;
     } catch {
-      throw new WsException('Invalid token');
+      throw new WsException("Invalid token");
     }
   }
 
@@ -36,7 +36,7 @@ export class WsJwtGuard implements CanActivate {
     if (authToken) return authToken;
 
     const authHeader = client.handshake.headers?.authorization;
-    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
       return authHeader.substring(7);
     }
 

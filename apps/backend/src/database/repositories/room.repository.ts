@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Room as RoomSchema, RoomDocument } from '../schemas/room.schema';
-import { Room, RoomStatus } from '../../types/room.types';
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { Room as RoomSchema, RoomDocument } from "../schemas/room.schema";
+import { Room, RoomStatus } from "../../types/room.types";
 
 @Injectable()
 export class RoomRepository {
@@ -50,7 +50,7 @@ export class RoomRepository {
   }
 
   async findByPlayerId(userId: string): Promise<RoomDocument | null> {
-    return this.roomModel.findOne({ 'players.userId': userId }).exec();
+    return this.roomModel.findOne({ "players.userId": userId }).exec();
   }
 
   async findAvailableRooms(): Promise<RoomDocument[]> {
@@ -62,12 +62,7 @@ export class RoomRepository {
       .exec();
   }
 
-  async addPlayer(
-    roomId: string,
-    userId: string,
-    username: string,
-    socketId: string,
-  ): Promise<RoomDocument | null> {
+  async addPlayer(roomId: string, userId: string, username: string, socketId: string): Promise<RoomDocument | null> {
     const now = new Date().toISOString();
     return this.roomModel
       .findByIdAndUpdate(
@@ -103,17 +98,13 @@ export class RoomRepository {
       .exec();
   }
 
-  async updatePlayerSocket(
-    roomId: string,
-    userId: string,
-    socketId: string,
-  ): Promise<RoomDocument | null> {
+  async updatePlayerSocket(roomId: string, userId: string, socketId: string): Promise<RoomDocument | null> {
     const now = new Date().toISOString();
     return this.roomModel
       .findOneAndUpdate(
-        { _id: roomId, 'players.userId': userId },
+        { _id: roomId, "players.userId": userId },
         {
-          $set: { 'players.$.socketId': socketId },
+          $set: { "players.$.socketId": socketId },
           updatedAt: now,
         },
         { new: true },
@@ -123,9 +114,7 @@ export class RoomRepository {
 
   async updateStatus(roomId: string, status: RoomStatus): Promise<RoomDocument | null> {
     const now = new Date().toISOString();
-    return this.roomModel
-      .findByIdAndUpdate(roomId, { status, updatedAt: now }, { new: true })
-      .exec();
+    return this.roomModel.findByIdAndUpdate(roomId, { status, updatedAt: now }, { new: true }).exec();
   }
 
   async updateHost(roomId: string, newHostId: string): Promise<RoomDocument | null> {

@@ -5,13 +5,13 @@
  * Maneja toda la comunicación en tiempo real con el servidor usando Socket.IO
  */
 
-import { io, Socket } from 'socket.io-client';
-import type { User, Room, GameState, Phase, Player } from '@/types/game';
-import type { SocketEvents, SocketEventCallback, ClientToServerEvents } from '@/types/socket';
-import { apiService } from './apiService';
-import { toast } from 'sonner';
-import { Logger, toError } from '@/services/Logger';
-import { StorageService, StorageKey } from '@/services/StorageService';
+import { io, Socket } from "socket.io-client";
+import type { User, Room, GameState, Phase, Player } from "@/types/game";
+import type { SocketEvents, SocketEventCallback, ClientToServerEvents } from "@/types/socket";
+import { apiService } from "./apiService";
+import { toast } from "sonner";
+import { Logger, toError } from "@/services/Logger";
+import { StorageService, StorageKey } from "@/services/StorageService";
 
 // Voting Results Data
 interface VotingResultsData {
@@ -46,27 +46,27 @@ interface SocketCallbacks {
   onPhaseChanged?: (data: { phase: Phase; message?: string }) => void;
   onWordGuessed?: (data: { message: string }) => void;
   onGameTie?: (data: { tiedPlayers: Player[] }) => void;
-  onGameVictory?: (data: { winner: 'citizens' | 'impostor' }) => void;
+  onGameVictory?: (data: { winner: "citizens" | "impostor" }) => void;
 }
 
 // Conjunto de claves válidas de SocketCallbacks para validación en runtime
 const VALID_CALLBACK_KEYS = new Set<keyof SocketCallbacks>([
-  'onConnect',
-  'onDisconnect',
-  'onError',
-  'onRoomState',
-  'onRoomClosed',
-  'onPlayerJoined',
-  'onPlayerLeft',
-  'onGameState',
-  'onRoomReconnected',
-  'onClueSubmitted',
-  'onVoteSubmitted',
-  'onVotingResults',
-  'onPhaseChanged',
-  'onWordGuessed',
-  'onGameTie',
-  'onGameVictory',
+  "onConnect",
+  "onDisconnect",
+  "onError",
+  "onRoomState",
+  "onRoomClosed",
+  "onPlayerJoined",
+  "onPlayerLeft",
+  "onGameState",
+  "onRoomReconnected",
+  "onClueSubmitted",
+  "onVoteSubmitted",
+  "onVotingResults",
+  "onPhaseChanged",
+  "onWordGuessed",
+  "onGameTie",
+  "onGameVictory",
 ]);
 
 // Tipo para respuesta de autenticación
@@ -87,9 +87,9 @@ export class SocketClient {
   private readonly maxReconnectAttempts: number = 5;
   private readonly reconnectDelay: number = 1000;
   private callbacks: SocketCallbacks = {};
-  private logger: Logger = new Logger('SocketClient');
+  private logger: Logger = new Logger("SocketClient");
 
-  constructor(serverUrl: string = 'http://localhost:3001') {
+  constructor(serverUrl: string = "http://localhost:3001") {
     this.serverUrl = serverUrl;
 
     // Cargar roomId desde StorageService si está disponible
@@ -112,44 +112,44 @@ export class SocketClient {
         settled = true;
         try {
           if (this.authSocket) {
-            this.authSocket.off('connect');
-            this.authSocket.off('connect_error');
+            this.authSocket.off("connect");
+            this.authSocket.off("connect_error");
             this.authSocket.disconnect();
           }
         } catch (e) {
           // Ignorar errores de limpieza
-          const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-          toast.error('Error al desconectar del servidor de autenticación: ' + errorMsg);
+          const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+          toast.error("Error al desconectar del servidor de autenticación: " + errorMsg);
         }
-        reject(new Error('No se pudo conectar al servidor de autenticación'));
+        reject(new Error("No se pudo conectar al servidor de autenticación"));
       }, timeoutMs);
 
       try {
         this.authSocket = io(`${this.serverUrl}/auth`, {
-          transports: ['websocket', 'polling'],
+          transports: ["websocket", "polling"],
         });
 
-        this.authSocket.on('connect', () => {
+        this.authSocket.on("connect", () => {
           if (settled) return;
           settled = true;
           clearTimeout(timeoutId);
-          this.logger.info('Conectado al namespace de autenticación');
+          this.logger.info("Conectado al namespace de autenticación");
           resolve();
         });
 
-        this.authSocket.on('connect_error', (error) => {
+        this.authSocket.on("connect_error", (error) => {
           if (settled) return;
           settled = true;
           clearTimeout(timeoutId);
-          this.logger.error('Error de conexión auth:', error);
-          reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
+          this.logger.error("Error de conexión auth:", error);
+          reject(error instanceof Error ? error : new Error("Error de conexión al servidor"));
         });
       } catch (error) {
         if (!settled) {
           settled = true;
           clearTimeout(timeoutId);
         }
-        reject(error instanceof Error ? error : new Error('Error al conectar al servidor de autenticación'));
+        reject(error instanceof Error ? error : new Error("Error al conectar al servidor de autenticación"));
       }
     });
   }
@@ -177,16 +177,16 @@ export class SocketClient {
         settled = true;
         try {
           if (this.socket) {
-            this.socket.off('connect');
-            this.socket.off('connect_error');
+            this.socket.off("connect");
+            this.socket.off("connect_error");
             this.socket.disconnect();
           }
         } catch (e) {
           // Ignorar errores de limpieza
-          const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-          toast.error('Error al desconectar del servidor: ' + errorMsg);
+          const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+          toast.error("Error al desconectar del servidor: " + errorMsg);
         }
-        reject(new Error('No se pudo conectar al servidor'));
+        reject(new Error("No se pudo conectar al servidor"));
       }, timeoutMs);
 
       try {
@@ -194,14 +194,14 @@ export class SocketClient {
           auth: {
             token: token,
           },
-          transports: ['websocket', 'polling'],
+          transports: ["websocket", "polling"],
         });
 
-        this.socket.on('connect', () => {
+        this.socket.on("connect", () => {
           if (settled) return;
           settled = true;
           clearTimeout(timeoutId);
-          this.logger.info('Conectado al servidor principal');
+          this.logger.info("Conectado al servidor principal");
           this.reconnectAttempts = 0;
 
           // Verificar si hay un roomId en localStorage para reconexión automática
@@ -220,13 +220,13 @@ export class SocketClient {
           resolve();
         });
 
-        this.socket.on('disconnect', (reason) => {
-          this.logger.info('Desconectado:', { reason });
+        this.socket.on("disconnect", (reason) => {
+          this.logger.info("Desconectado:", { reason });
 
           this.callbacks.onDisconnect?.(reason);
 
           // Intentar reconexión automática si no fue desconexión manual
-          if (reason === 'io server disconnect') {
+          if (reason === "io server disconnect") {
             // El servidor desconectó, no reconectar automáticamente
             return;
           }
@@ -234,16 +234,16 @@ export class SocketClient {
           this.attemptReconnect();
         });
 
-        this.socket.on('connect_error', async (error: Error) => {
-          this.logger.error('Error de conexión:', error);
+        this.socket.on("connect_error", async (error: Error) => {
+          this.logger.error("Error de conexión:", error);
 
-          const msg = error?.message || '';
+          const msg = error?.message || "";
           const looksAuthFailure =
-            msg === 'Token inválido' ||
-            msg === 'Token requerido' ||
-            msg === 'Token de autenticación requerido' ||
-            msg.startsWith('Autenticación fallida:') ||
-            msg.toLowerCase().includes('token');
+            msg === "Token inválido" ||
+            msg === "Token requerido" ||
+            msg === "Token de autenticación requerido" ||
+            msg.startsWith("Autenticación fallida:") ||
+            msg.toLowerCase().includes("token");
 
           if (looksAuthFailure) {
             const storedToken = StorageService.get<string>(StorageKey.AUTH_TOKEN);
@@ -251,8 +251,8 @@ export class SocketClient {
             if (!storedToken) {
               this.clearAuth(true);
               this.callbacks.onError?.({
-                error: 'Sesión expirada',
-                message: 'Por favor, inicia sesión nuevamente',
+                error: "Sesión expirada",
+                message: "Por favor, inicia sesión nuevamente",
               });
               if (!settled) {
                 settled = true;
@@ -266,9 +266,9 @@ export class SocketClient {
             let tokenIsInvalid = false;
             try {
               const resp = await fetch(`${this.serverUrl}/api/auth/verify`, {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                  'Content-Type': 'application/json',
+                  "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ token: storedToken }),
               });
@@ -278,27 +278,22 @@ export class SocketClient {
                 message?: string;
                 valid?: boolean;
               } | null;
-              const errText = (
-                data && (data.error || data.message) ? String(data.error || data.message) : ''
-              ).toLowerCase();
+              const errText = (data && (data.error || data.message) ? String(data.error || data.message) : "").toLowerCase();
 
-              if (
-                (data?.valid === false && errText.includes('token inválido')) ||
-                (data?.valid === false && errText.includes('token expirado'))
-              ) {
+              if ((data?.valid === false && errText.includes("token inválido")) || (data?.valid === false && errText.includes("token expirado"))) {
                 tokenIsInvalid = true;
               }
             } catch (e) {
               tokenIsInvalid = false;
-              const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-              toast.error('Error al verificar token: ' + errorMsg);
+              const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+              toast.error("Error al verificar token: " + errorMsg);
             }
 
             if (tokenIsInvalid) {
               this.clearAuth(true);
               this.callbacks.onError?.({
-                error: 'Sesión expirada',
-                message: 'Por favor, inicia sesión nuevamente',
+                error: "Sesión expirada",
+                message: "Por favor, inicia sesión nuevamente",
               });
               if (!settled) {
                 settled = true;
@@ -311,7 +306,7 @@ export class SocketClient {
             if (!settled) {
               settled = true;
               clearTimeout(timeoutId);
-              reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
+              reject(error instanceof Error ? error : new Error("Error de conexión al servidor"));
             }
             this.attemptReconnect();
             return;
@@ -320,7 +315,7 @@ export class SocketClient {
           if (!settled) {
             settled = true;
             clearTimeout(timeoutId);
-            reject(error instanceof Error ? error : new Error('Error de conexión al servidor'));
+            reject(error instanceof Error ? error : new Error("Error de conexión al servidor"));
           }
           this.attemptReconnect();
         });
@@ -332,7 +327,7 @@ export class SocketClient {
           settled = true;
           clearTimeout(timeoutId);
         }
-        reject(error instanceof Error ? error : new Error('Error al conectar al servidor'));
+        reject(error instanceof Error ? error : new Error("Error al conectar al servidor"));
       }
     });
   }
@@ -344,58 +339,58 @@ export class SocketClient {
     if (!this.socket) return;
 
     // Eventos de salas
-    this.socket.on('room:joined', (data: { room: Room }) => {
-      this.logger.debug('Unido a sala:', data);
+    this.socket.on("room:joined", (data: { room: Room }) => {
+      this.logger.debug("Unido a sala:", data);
       this.callbacks.onRoomState?.(data.room);
     });
 
-    this.socket.on('room:left', (data: { room?: Room | null; success?: boolean }) => {
-      this.logger.debug('Salido de sala:', data);
+    this.socket.on("room:left", (data: { room?: Room | null; success?: boolean }) => {
+      this.logger.debug("Salido de sala:", data);
       this.currentRoomId = null;
       try {
         StorageService.remove(StorageKey.ROOM_ID);
       } catch (e) {
         // Ignorar errores
-        const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-        toast.error('Error al salir de la sala: ' + errorMsg);
+        const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+        toast.error("Error al salir de la sala: " + errorMsg);
       }
       this.callbacks.onRoomState?.(data.room ?? null);
     });
 
-    this.socket.on('room:closed', (data: { message: string }) => {
-      this.logger.debug('Sala cerrada:', data);
+    this.socket.on("room:closed", (data: { message: string }) => {
+      this.logger.debug("Sala cerrada:", data);
       this.currentRoomId = null;
       try {
         StorageService.remove(StorageKey.ROOM_ID);
       } catch (e) {
         // Ignorar errores
-        const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-        toast.error('Error al salir de la sala: ' + errorMsg);
+        const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+        toast.error("Error al salir de la sala: " + errorMsg);
       }
 
       this.callbacks.onRoomClosed?.(data);
       this.callbacks.onRoomState?.(null);
     });
 
-    this.socket.on('room:playerJoined', (data: { player: Player; room: Room }) => {
-      this.logger.debug('Jugador unido:', data);
+    this.socket.on("room:playerJoined", (data: { player: Player; room: Room }) => {
+      this.logger.debug("Jugador unido:", data);
       this.callbacks.onPlayerJoined?.(data);
       this.callbacks.onRoomState?.(data.room);
     });
 
-    this.socket.on('room:playerLeft', (data: { player: Player; room: Room }) => {
-      this.logger.debug('Jugador salió:', data);
+    this.socket.on("room:playerLeft", (data: { player: Player; room: Room }) => {
+      this.logger.debug("Jugador salió:", data);
       this.callbacks.onPlayerLeft?.(data);
       this.callbacks.onRoomState?.(data.room);
     });
 
-    this.socket.on('room:state', (data: { room: Room }) => {
-      this.logger.debug('Estado de sala actualizado:', data);
+    this.socket.on("room:state", (data: { room: Room }) => {
+      this.logger.debug("Estado de sala actualizado:", data);
       this.callbacks.onRoomState?.(data.room);
     });
 
-    this.socket.on('room:reconnected', (data: { room: Room; gameState?: GameState }) => {
-      this.logger.debug('Reconectado a sala:', data);
+    this.socket.on("room:reconnected", (data: { room: Room; gameState?: GameState }) => {
+      this.logger.debug("Reconectado a sala:", data);
 
       const roomId = data?.room?.id;
       if (roomId) {
@@ -404,73 +399,73 @@ export class SocketClient {
           StorageService.set(StorageKey.ROOM_ID, roomId);
         } catch (e) {
           // Ignorar errores
-          const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-          toast.error('Error al guardar ID de sala: ' + errorMsg);
+          const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+          toast.error("Error al guardar ID de sala: " + errorMsg);
         }
       }
 
       this.callbacks.onRoomReconnected?.(data);
     });
 
-    this.socket.on('room:error', (error: { error: string; message: string }) => {
-      this.logger.error('Error de sala:', new Error(error.message));
+    this.socket.on("room:error", (error: { error: string; message: string }) => {
+      this.logger.error("Error de sala:", new Error(error.message));
       this.callbacks.onError?.(error);
     });
 
     // Eventos de juego
-    this.socket.on('game:state', (data: { gameState: GameState; phase: Phase }) => {
-      this.logger.debug('Estado del juego actualizado');
+    this.socket.on("game:state", (data: { gameState: GameState; phase: Phase }) => {
+      this.logger.debug("Estado del juego actualizado");
       this.callbacks.onGameState?.(data);
     });
 
-    this.socket.on('game:clueSubmitted', (data: { playerName: string; clue: string }) => {
-      this.logger.debug('Nueva pista recibida:', data);
+    this.socket.on("game:clueSubmitted", (data: { playerName: string; clue: string }) => {
+      this.logger.debug("Nueva pista recibida:", data);
       this.callbacks.onClueSubmitted?.(data);
     });
 
-    this.socket.on('game:turnChanged', (data: { turn: number }) => {
-      this.logger.debug('Turno cambiado:', data);
+    this.socket.on("game:turnChanged", (data: { turn: number }) => {
+      this.logger.debug("Turno cambiado:", data);
       // El estado completo vendrá en game:state
     });
 
-    this.socket.on('game:voteSubmitted', (data: { voterId: string }) => {
-      this.logger.debug('Voto recibido:', data);
+    this.socket.on("game:voteSubmitted", (data: { voterId: string }) => {
+      this.logger.debug("Voto recibido:", data);
       this.callbacks.onVoteSubmitted?.(data);
     });
 
-    this.socket.on('game:votingResults', (data: { votingResults: VotingResultsData }) => {
-      this.logger.debug('Resultados de votación:', data);
+    this.socket.on("game:votingResults", (data: { votingResults: VotingResultsData }) => {
+      this.logger.debug("Resultados de votación:", data);
       this.callbacks.onVotingResults?.(data.votingResults);
     });
 
-    this.socket.on('game:tie', (data: { tiedPlayers: Player[] }) => {
-      this.logger.debug('Empate en la votación:', data);
+    this.socket.on("game:tie", (data: { tiedPlayers: Player[] }) => {
+      this.logger.debug("Empate en la votación:", data);
       this.callbacks.onGameTie?.(data);
     });
 
-    this.socket.on('game:phaseChanged', (data: { phase: Phase; message?: string }) => {
-      this.logger.debug('Fase cambiada:', data);
+    this.socket.on("game:phaseChanged", (data: { phase: Phase; message?: string }) => {
+      this.logger.debug("Fase cambiada:", data);
       this.callbacks.onPhaseChanged?.(data);
     });
 
-    this.socket.on('game:wordGuessed', (data: { message: string }) => {
-      this.logger.debug('Palabra adivinada:', data);
+    this.socket.on("game:wordGuessed", (data: { message: string }) => {
+      this.logger.debug("Palabra adivinada:", data);
       this.callbacks.onWordGuessed?.(data);
     });
 
-    this.socket.on('game:error', (error: { error: string; message: string }) => {
-      this.logger.error('Error de juego:', new Error(error.message));
+    this.socket.on("game:error", (error: { error: string; message: string }) => {
+      this.logger.error("Error de juego:", new Error(error.message));
       this.callbacks.onError?.(error);
     });
 
-    this.socket.on('game:victory', (data: { winner: 'citizens' | 'impostor' }) => {
-      this.logger.debug('Victoria recibida:', data);
+    this.socket.on("game:victory", (data: { winner: "citizens" | "impostor" }) => {
+      this.logger.debug("Victoria recibida:", data);
       this.callbacks.onGameVictory?.(data);
     });
 
     // Evento de prueba
-    this.socket.on('pong', (data: { latency: number }) => {
-      this.logger.debug('Pong recibido:', data);
+    this.socket.on("pong", (data: { latency: number }) => {
+      this.logger.debug("Pong recibido:", data);
     });
   }
 
@@ -479,10 +474,10 @@ export class SocketClient {
    */
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.logger.error('Máximo de intentos de reconexión alcanzado');
+      this.logger.error("Máximo de intentos de reconexión alcanzado");
       this.callbacks.onError?.({
-        error: 'Conexión perdida',
-        message: 'No se pudo reconectar al servidor. Por favor, recarga la página.',
+        error: "Conexión perdida",
+        message: "No se pudo reconectar al servidor. Por favor, recarga la página.",
       });
       return;
     }
@@ -490,9 +485,7 @@ export class SocketClient {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * this.reconnectAttempts;
 
-    this.logger.info(
-      `Intentando reconectar en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`
-    );
+    this.logger.info(`Intentando reconectar en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(() => {
       if (this.token) {
@@ -518,7 +511,7 @@ export class SocketClient {
         if (settled) return;
         settled = true;
         cleanup();
-        reject(new Error('No se recibió respuesta del servidor (registro)'));
+        reject(new Error("No se recibió respuesta del servidor (registro)"));
       }, timeoutMs);
 
       const onSuccess = (data: AuthResponse) => {
@@ -544,26 +537,26 @@ export class SocketClient {
         settled = true;
         clearTimeout(timeoutId);
         cleanup();
-        reject(error instanceof Error ? error : new Error('Error al registrar'));
+        reject(error instanceof Error ? error : new Error("Error al registrar"));
       };
 
       const cleanup = () => {
         try {
           if (this.authSocket) {
-            this.authSocket.off('auth:register:success', onSuccess);
-            this.authSocket.off('auth:error', onError);
+            this.authSocket.off("auth:register:success", onSuccess);
+            this.authSocket.off("auth:error", onError);
           }
         } catch (e) {
           // Ignorar errores
-          const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-          toast.error('Error al registrar: ' + errorMsg);
+          const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+          toast.error("Error al registrar: " + errorMsg);
         }
       };
 
-      this.authSocket!.on('auth:register:success', onSuccess);
-      this.authSocket!.on('auth:error', onError);
+      this.authSocket!.on("auth:register:success", onSuccess);
+      this.authSocket!.on("auth:error", onError);
 
-      this.authSocket!.emit('auth:register', { username, email, password });
+      this.authSocket!.emit("auth:register", { username, email, password });
     });
   }
 
@@ -582,7 +575,7 @@ export class SocketClient {
         if (settled) return;
         settled = true;
         cleanup();
-        reject(new Error('No se recibió respuesta del servidor (login)'));
+        reject(new Error("No se recibió respuesta del servidor (login)"));
       }, timeoutMs);
 
       const onSuccess = (data: AuthResponse) => {
@@ -608,26 +601,26 @@ export class SocketClient {
         settled = true;
         clearTimeout(timeoutId);
         cleanup();
-        reject(error instanceof Error ? error : new Error('Error al iniciar sesión'));
+        reject(error instanceof Error ? error : new Error("Error al iniciar sesión"));
       };
 
       const cleanup = () => {
         try {
           if (this.authSocket) {
-            this.authSocket.off('auth:login:success', onSuccess);
-            this.authSocket.off('auth:error', onError);
+            this.authSocket.off("auth:login:success", onSuccess);
+            this.authSocket.off("auth:error", onError);
           }
         } catch (e) {
           // Ignorar errores
-          const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-          toast.error('Error al iniciar sesión: ' + errorMsg);
+          const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+          toast.error("Error al iniciar sesión: " + errorMsg);
         }
       };
 
-      this.authSocket!.on('auth:login:success', onSuccess);
-      this.authSocket!.on('auth:error', onError);
+      this.authSocket!.on("auth:login:success", onSuccess);
+      this.authSocket!.on("auth:error", onError);
 
-      this.authSocket!.emit('auth:login', { email, password });
+      this.authSocket!.emit("auth:login", { email, password });
     });
   }
 
@@ -673,7 +666,7 @@ export class SocketClient {
 
       const timeoutId = setTimeout(() => {
         cleanup();
-        reject(new Error('Socket connection timeout'));
+        reject(new Error("Socket connection timeout"));
       }, timeoutMs);
 
       const onConnect = () => {
@@ -684,15 +677,15 @@ export class SocketClient {
       const cleanup = () => {
         clearTimeout(timeoutId);
         if (this.socket) {
-          this.socket.off('connect', onConnect);
+          this.socket.off("connect", onConnect);
         }
       };
 
       if (this.socket) {
-        this.socket.on('connect', onConnect);
+        this.socket.on("connect", onConnect);
       } else {
         cleanup();
-        reject(new Error('No socket instance'));
+        reject(new Error("No socket instance"));
       }
     });
   }
@@ -718,9 +711,9 @@ export class SocketClient {
         this.userId = user.userId;
         this.username = user.username;
       } catch (e) {
-        this.logger.warn('No se pudo obtener datos del usuario');
-        const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-        toast.error('Error al obtener datos del usuario: ' + errorMsg);
+        this.logger.warn("No se pudo obtener datos del usuario");
+        const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+        toast.error("Error al obtener datos del usuario: " + errorMsg);
       }
 
       // Esperar evento de reconexión a sala (si estaba en una)
@@ -733,7 +726,7 @@ export class SocketClient {
         gameState: roomData?.gameState,
       };
     } catch (error) {
-      this.logger.error('Error al reconectar:', toError(error));
+      this.logger.error("Error al reconectar:", toError(error));
 
       // Fallback: esperar reconexión automática de Socket.io
       try {
@@ -747,8 +740,8 @@ export class SocketClient {
           this.username = user.username;
         } catch (e) {
           // Ignorar error de fetch
-          const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-          toast.error('Error al obtener datos del usuario: ' + errorMsg);
+          const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+          toast.error("Error al obtener datos del usuario: " + errorMsg);
         }
 
         const roomData = await this.waitForRoomReconnection(3000);
@@ -760,9 +753,9 @@ export class SocketClient {
           gameState: roomData?.gameState,
         };
       } catch (error) {
-        this.logger.error('Error al reconectar automáticamente:', toError(error));
-        const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
-        toast.error('Error al reconectar automáticamente: ' + errorMsg);
+        this.logger.error("Error al reconectar automáticamente:", toError(error));
+        const errorMsg = error instanceof Error ? error.message : "Error desconocido";
+        toast.error("Error al reconectar automáticamente: " + errorMsg);
         return { success: false };
       }
     }
@@ -783,8 +776,8 @@ export class SocketClient {
         StorageService.remove(StorageKey.AUTH_TOKEN);
       } catch (e) {
         // Ignorar errores
-        const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-        toast.error('Error al limpiar autenticación: ' + errorMsg);
+        const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+        toast.error("Error al limpiar autenticación: " + errorMsg);
       }
     }
     this.disconnectMain();
@@ -822,7 +815,7 @@ export class SocketClient {
    * Logout: Cerrar sesión, salir de sala y desconectar
    */
   logout(): void {
-    this.logger.info('Cerrando sesión');
+    this.logger.info("Cerrando sesión");
 
     // Salir de sala si está en una
     if (this.currentRoomId && this.socket?.connected) {
@@ -830,7 +823,7 @@ export class SocketClient {
         this.leaveRoom();
       } catch (e) {
         const error = toError(e);
-        this.logger.warn('Error al salir de sala durante logout:', { error: error.message });
+        this.logger.warn("Error al salir de sala durante logout:", { error: error.message });
       }
     }
 
@@ -841,7 +834,7 @@ export class SocketClient {
     this.disconnect();
 
     // Notificar a callbacks para actualizar UI
-    this.callbacks.onDisconnect?.('User logout');
+    this.callbacks.onDisconnect?.("User logout");
   }
 
   /**
@@ -853,8 +846,8 @@ export class SocketClient {
       StorageService.set(StorageKey.ROOM_ID, roomId);
     } catch (e) {
       // Ignorar errores
-      const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-      toast.error('Error al guardar roomId: ' + errorMsg);
+      const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+      toast.error("Error al guardar roomId: " + errorMsg);
     }
 
     // Si aún no hay socket conectado, solo guardamos el roomId
@@ -862,7 +855,7 @@ export class SocketClient {
       return;
     }
 
-    this.socket.emit('room:join', { roomId });
+    this.socket.emit("room:join", { roomId });
   }
 
   /**
@@ -871,15 +864,15 @@ export class SocketClient {
   leaveRoom(): void {
     if (this.currentRoomId) {
       if (this.socket?.connected) {
-        this.socket.emit('room:leave', { roomId: this.currentRoomId });
+        this.socket.emit("room:leave", { roomId: this.currentRoomId });
       }
       this.currentRoomId = null;
       try {
         StorageService.remove(StorageKey.ROOM_ID);
       } catch (e) {
         // Ignorar errores
-        const errorMsg = e instanceof Error ? e.message : 'Error desconocido';
-        toast.error('Error al eliminar roomId: ' + errorMsg);
+        const errorMsg = e instanceof Error ? e.message : "Error desconocido";
+        toast.error("Error al eliminar roomId: " + errorMsg);
       }
     }
   }
@@ -892,7 +885,7 @@ export class SocketClient {
       return;
     }
 
-    this.socket.emit('room:state', { roomId: this.currentRoomId });
+    this.socket.emit("room:state", { roomId: this.currentRoomId });
   }
 
   /**
@@ -900,16 +893,16 @@ export class SocketClient {
    */
   startGame(): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     const roomId = this.currentRoomId || StorageService.get<string>(StorageKey.ROOM_ID);
     if (!roomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
     this.currentRoomId = roomId;
-    this.socket.emit('game:start', { roomId });
+    this.socket.emit("game:start", { roomId });
   }
 
   /**
@@ -917,14 +910,14 @@ export class SocketClient {
    */
   confirmRolesViewed(): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     if (!this.currentRoomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
-    this.socket.emit('game:confirmRoles', {
+    this.socket.emit("game:confirmRoles", {
       roomId: this.currentRoomId,
     });
   }
@@ -934,16 +927,16 @@ export class SocketClient {
    */
   startCluesPhase(): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     const roomId = this.currentRoomId || StorageService.get<string>(StorageKey.ROOM_ID);
     if (!roomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
     this.currentRoomId = roomId;
-    this.socket.emit('game:startCluesPhase', { roomId });
+    this.socket.emit("game:startCluesPhase", { roomId });
   }
 
   /**
@@ -951,14 +944,14 @@ export class SocketClient {
    */
   submitClue(clue: string): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     if (!this.currentRoomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
-    this.socket.emit('game:submitClue', {
+    this.socket.emit("game:submitClue", {
       roomId: this.currentRoomId,
       clue,
     });
@@ -969,14 +962,14 @@ export class SocketClient {
    */
   submitVote(votedPlayerId: string): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     if (!this.currentRoomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
-    this.socket.emit('game:submitVote', {
+    this.socket.emit("game:submitVote", {
       roomId: this.currentRoomId,
       votedPlayerId,
     });
@@ -987,14 +980,14 @@ export class SocketClient {
    */
   resolveTie(): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     if (!this.currentRoomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
-    this.socket.emit('game:resolveTie', {
+    this.socket.emit("game:resolveTie", {
       roomId: this.currentRoomId,
     });
   }
@@ -1011,7 +1004,7 @@ export class SocketClient {
       return;
     }
 
-    this.socket.emit('game:getState', { roomId: this.currentRoomId });
+    this.socket.emit("game:getState", { roomId: this.currentRoomId });
   }
 
   /**
@@ -1019,14 +1012,14 @@ export class SocketClient {
    */
   startNewRound(): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
 
     if (!this.currentRoomId) {
-      throw new Error('No estás en ninguna sala');
+      throw new Error("No estás en ninguna sala");
     }
 
-    this.socket.emit('game:startNewRound', { roomId: this.currentRoomId });
+    this.socket.emit("game:startNewRound", { roomId: this.currentRoomId });
   }
 
   /**
@@ -1049,7 +1042,7 @@ export class SocketClient {
    */
   emit<K extends keyof ClientToServerEvents>(event: K, ...args: Parameters<ClientToServerEvents[K]>): void {
     if (!this.socket?.connected) {
-      throw new Error('No conectado al servidor');
+      throw new Error("No conectado al servidor");
     }
     this.socket.emit(event, ...args);
   }
@@ -1068,7 +1061,7 @@ export class SocketClient {
    */
   getSocket(): Socket {
     if (!this.socket?.connected) {
-      throw new Error('Socket no conectado al servidor');
+      throw new Error("Socket no conectado al servidor");
     }
     return this.socket;
   }

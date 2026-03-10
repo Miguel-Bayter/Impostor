@@ -1,5 +1,5 @@
-import { SocketClient } from './SocketClient';
-import { APP_CONFIG } from '@/config';
+import { SocketClient } from "./SocketClient";
+import { APP_CONFIG } from "@/config";
 
 /**
  * Singleton wrapper para SocketClient

@@ -17,7 +17,14 @@ export interface SharedRoomSettings {
   numImpostors?: number;
 }
 
-export type SharedRoomStatus = 'open' | 'waiting' | 'starting' | 'playing' | 'in_progress' | 'finished' | 'closed';
+export type SharedRoomStatus =
+  | 'open'
+  | 'waiting'
+  | 'starting'
+  | 'playing'
+  | 'in_progress'
+  | 'finished'
+  | 'closed';
 
 export interface SharedRoom {
   id: string;

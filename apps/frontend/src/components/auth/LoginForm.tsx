@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { useGame } from '@/hooks/useGame';
-import { Mail, Lock, LogIn, Loader2 } from 'lucide-react';
-import { socketService } from '@/services/socket';
+import { useState } from "react";
+import { useGame } from "@/hooks/useGame";
+import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
+import { socketService } from "@/services/socket";
 
 const LoginForm = () => {
   const { dispatch } = useGame();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,11 +20,11 @@ const LoginForm = () => {
       const socketClient = socketService.getInstance();
       const result = await socketClient.login(email, password);
 
-      dispatch({ type: 'SET_USER', payload: result.user });
-      dispatch({ type: 'SET_TOKEN', payload: result.token });
+      dispatch({ type: "SET_USER", payload: result.user });
+      dispatch({ type: "SET_TOKEN", payload: result.token });
     } catch (err) {
       const error = err as Error;
-      setError(error.message || 'Error al iniciar sesión');
+      setError(error.message || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
@@ -32,11 +32,7 @@ const LoginForm = () => {
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
-      {error && (
-        <div className="p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm text-center">{error}</div>}
 
       <div className="space-y-2">
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pl-1">Email</label>

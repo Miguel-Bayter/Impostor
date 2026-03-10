@@ -35,6 +35,7 @@ pnpm --filter ./apps/frontend dev
 ```
 
 Local server:
+
 - http://localhost:5173
 
 ## Production (Cloudflare Pages)
@@ -54,6 +55,7 @@ VITE_SERVER_URL=https://<your-backend-domain>
 ```
 
 Notes:
+
 - In Vite, `VITE_*` variables are injected at build time.
 - If you change `VITE_SERVER_URL`, you need a new build.
 

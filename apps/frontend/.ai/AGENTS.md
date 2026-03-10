@@ -48,6 +48,7 @@ Run from repository root.
   - `pnpm --filter ./apps/frontend test`
 
 Single test examples:
+
 - `pnpm --filter ./apps/frontend test -- src/components/rooms/RoomDiscovery.test.tsx`
 - `pnpm --filter ./apps/frontend test -- -t "joins room"`
 

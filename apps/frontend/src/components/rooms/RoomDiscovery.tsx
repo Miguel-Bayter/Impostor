@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
-import { useGame } from '@/hooks/useGame';
-import { RefreshCw, Plus, Hash, Lock } from 'lucide-react';
-import { toast } from 'sonner';
+import { useEffect, useState } from "react";
+import { useGame } from "@/hooks/useGame";
+import { RefreshCw, Plus, Hash, Lock } from "lucide-react";
+import { toast } from "sonner";
 
-import type { Room } from '@/types/game';
-import { apiService } from '@/services/apiService';
-import { socketService } from '@/services/socket';
-import CreateRoomModal from './CreateRoomModal';
-import JoinRoomByCode from './JoinRoomByCode';
-import { Logger, toError } from '@/services/Logger';
+import type { Room } from "@/types/game";
+import { apiService } from "@/services/apiService";
+import { socketService } from "@/services/socket";
+import CreateRoomModal from "./CreateRoomModal";
+import JoinRoomByCode from "./JoinRoomByCode";
+import { Logger, toError } from "@/services/Logger";
 
-const logger = new Logger('RoomDiscovery');
+const logger = new Logger("RoomDiscovery");
 
 const RoomDiscovery = () => {
   const { dispatch } = useGame();
@@ -25,8 +25,8 @@ const RoomDiscovery = () => {
       const rooms = await apiService.listRooms();
       setRooms(rooms);
     } catch (error) {
-      logger.error('Error al cargar salas:', toError(error));
-      toast.error('Error al cargar las salas');
+      logger.error("Error al cargar salas:", toError(error));
+      toast.error("Error al cargar las salas");
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ const RoomDiscovery = () => {
   const handleJoinRoom = async (room: Room) => {
     // Si la sala es privada, abrir modal de código en lugar de join directo
     if (room.isPrivate) {
-      toast.info('Esta sala es privada. Ingresa el código para unirte.');
+      toast.info("Esta sala es privada. Ingresa el código para unirte.");
       setShowJoinModal(true);
       return;
     }
@@ -51,11 +51,11 @@ const RoomDiscovery = () => {
       const socketClient = socketService.getInstance();
       socketClient.joinRoom(room.id);
 
-      dispatch({ type: 'SET_ROOM', payload: joinedRoom });
-      toast.success('Te has unido a la sala');
+      dispatch({ type: "SET_ROOM", payload: joinedRoom });
+      toast.success("Te has unido a la sala");
     } catch (error: unknown) {
       const err = error as Error;
-      toast.error(err.message || 'Error al unirse a la sala');
+      toast.error(err.message || "Error al unirse a la sala");
     }
   };
 
@@ -74,7 +74,7 @@ const RoomDiscovery = () => {
             className="p-3 bg-card hover:bg-hover rounded-md border border-border transition-colors duration-150 disabled:opacity-50"
             title="Actualizar"
           >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
             onClick={() => setShowJoinModal(true)}
@@ -115,18 +115,16 @@ const RoomDiscovery = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground font-mono mt-1">
-                  Código: #{room.id.slice(0, 6).toUpperCase()}
-                </p>
+                <p className="text-xs text-muted-foreground font-mono mt-1">Código: #{room.id.slice(0, 6).toUpperCase()}</p>
               </div>
               <div
                 className={`px-3 py-1.5 rounded-sm text-xs font-medium border ${
-                  room.status === 'open' || room.status === 'waiting'
-                    ? 'bg-success/20 text-success border-success/30'
-                    : 'bg-warning/20 text-warning border-warning/30'
+                  room.status === "open" || room.status === "waiting"
+                    ? "bg-success/20 text-success border-success/30"
+                    : "bg-warning/20 text-warning border-warning/30"
                 }`}
               >
-                {room.status === 'open' || room.status === 'waiting' ? 'Abierta' : 'En Juego'}
+                {room.status === "open" || room.status === "waiting" ? "Abierta" : "En Juego"}
               </div>
             </div>
 
@@ -141,16 +139,16 @@ const RoomDiscovery = () => {
 
             <button
               onClick={() => void handleJoinRoom(room)}
-              disabled={(room.status !== 'open' && room.status !== 'waiting') || room.players.length >= room.maxPlayers}
+              disabled={(room.status !== "open" && room.status !== "waiting") || room.players.length >= room.maxPlayers}
               className="w-full py-3 bg-primary hover:bg-primary-hover text-primary-foreground disabled:bg-input disabled:text-muted-foreground rounded-md font-medium shadow-sm hover:shadow-md transition-all duration-150 disabled:cursor-not-allowed disabled:shadow-none active:scale-[0.98]"
             >
-              {room.status !== 'open' && room.status !== 'waiting'
-                ? 'En Progreso'
+              {room.status !== "open" && room.status !== "waiting"
+                ? "En Progreso"
                 : room.players.length >= room.maxPlayers
-                  ? 'Sala Llena'
+                  ? "Sala Llena"
                   : room.isPrivate
-                    ? 'Unirse con Código →'
-                    : 'Unirse →'}
+                    ? "Unirse con Código →"
+                    : "Unirse →"}
             </button>
           </div>
         ))}

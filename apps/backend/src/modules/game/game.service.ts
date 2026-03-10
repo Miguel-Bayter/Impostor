@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { RoomRepository } from '../../database/repositories/room.repository';
-import { RoomsService } from '../rooms/rooms.service';
-import { RedisService } from '../redis/redis.service';
-import { GameState, GamePhase, GamePlayer, GameClue } from '../../types/game.types';
-import { RoomStatus } from '../../types/room.types';
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { RoomRepository } from "../../database/repositories/room.repository";
+import { RoomsService } from "../rooms/rooms.service";
+import { RedisService } from "../redis/redis.service";
+import { GameState, GamePhase, GamePlayer, GameClue } from "../../types/game.types";
+import { RoomStatus } from "../../types/room.types";
 import {
   getRandomWord,
   validateClue,
@@ -12,8 +12,8 @@ import {
   resolveVoteTie,
   checkVictoryConditions,
   validateGameRules,
-} from '../../common/utils/game-logic.util';
-import { sanitizeClue } from '../../common/utils/sanitizer.util';
+} from "../../common/utils/game-logic.util";
+import { sanitizeClue } from "../../common/utils/sanitizer.util";
 
 @Injectable()
 export class GameService {
@@ -29,15 +29,15 @@ export class GameService {
   async startGame(roomId: string, hostId: string): Promise<GameState> {
     const room = await this.roomRepository.findById(roomId);
     if (!room) {
-      throw new NotFoundException('Room not found');
+      throw new NotFoundException("Room not found");
     }
 
     if (room.hostId !== hostId) {
-      throw new BadRequestException('Only the host can start the game');
+      throw new BadRequestException("Only the host can start the game");
     }
 
     if (room.status !== RoomStatus.WAITING) {
-      throw new BadRequestException('Game already started');
+      throw new BadRequestException("Game already started");
     }
 
     const numPlayers = room.players.length;
@@ -91,11 +91,11 @@ export class GameService {
   async confirmRole(roomId: string, userId: string): Promise<void> {
     const gameState = await this.getGameState(roomId);
     if (!gameState) {
-      throw new NotFoundException('Game not found');
+      throw new NotFoundException("Game not found");
     }
 
     if (gameState.phase !== GamePhase.ROLES) {
-      throw new BadRequestException('Not in roles phase');
+      throw new BadRequestException("Not in roles phase");
     }
 
     gameState.rolesConfirmed.add(userId);
@@ -112,36 +112,36 @@ export class GameService {
   async submitClue(roomId: string, userId: string, clue: string): Promise<GameState> {
     const gameState = await this.getGameState(roomId);
     if (!gameState) {
-      throw new NotFoundException('Game not found');
+      throw new NotFoundException("Game not found");
     }
 
     if (gameState.phase !== GamePhase.CLUES) {
-      throw new BadRequestException('Not in clues phase');
+      throw new BadRequestException("Not in clues phase");
     }
 
     const player = gameState.players.find((p) => p.userId === userId);
     if (!player) {
-      throw new NotFoundException('Player not found in game');
+      throw new NotFoundException("Player not found in game");
     }
 
     if (player.isEliminated) {
-      throw new BadRequestException('You have been eliminated');
+      throw new BadRequestException("You have been eliminated");
     }
 
     // Check if player already submitted a clue
     const existingClue = gameState.clues.find((c) => c.playerId === userId);
     if (existingClue) {
-      throw new BadRequestException('You already submitted a clue');
+      throw new BadRequestException("You already submitted a clue");
     }
 
     // Sanitize clue
     const sanitized = sanitizeClue(clue);
     if (!sanitized) {
-      throw new BadRequestException('Invalid clue');
+      throw new BadRequestException("Invalid clue");
     }
 
     // Validate clue
-    const validation = validateClue(sanitized, gameState.clues, gameState.secretWord || '');
+    const validation = validateClue(sanitized, gameState.clues, gameState.secretWord || "");
     if (!validation.isValid) {
       throw new BadRequestException(validation.errorMessage);
     }
@@ -168,25 +168,25 @@ export class GameService {
   async submitVote(roomId: string, userId: string, votedPlayerId: string): Promise<GameState> {
     const gameState = await this.getGameState(roomId);
     if (!gameState) {
-      throw new NotFoundException('Game not found');
+      throw new NotFoundException("Game not found");
     }
 
     if (gameState.phase !== GamePhase.VOTING) {
-      throw new BadRequestException('Not in voting phase');
+      throw new BadRequestException("Not in voting phase");
     }
 
     const player = gameState.players.find((p) => p.userId === userId);
     if (!player) {
-      throw new NotFoundException('Player not found in game');
+      throw new NotFoundException("Player not found in game");
     }
 
     if (player.isEliminated) {
-      throw new BadRequestException('You have been eliminated');
+      throw new BadRequestException("You have been eliminated");
     }
 
     // Check if player already voted
     if (gameState.votes[userId]) {
-      throw new BadRequestException('You already voted');
+      throw new BadRequestException("You already voted");
     }
 
     // Validate vote
@@ -233,18 +233,18 @@ export class GameService {
   async resolveTie(roomId: string): Promise<GameState> {
     const gameState = await this.getGameState(roomId);
     if (!gameState) {
-      throw new NotFoundException('Game not found');
+      throw new NotFoundException("Game not found");
     }
 
     if (gameState.phase !== GamePhase.TIE_BREAKER) {
-      throw new BadRequestException('Not in tie breaker phase');
+      throw new BadRequestException("Not in tie breaker phase");
     }
 
     // Calculate voting results
     const results = calculateVotingResults(gameState.votes, gameState.players);
 
     if (!results.isTie || results.tiedPlayers.length === 0) {
-      throw new BadRequestException('No tie to resolve');
+      throw new BadRequestException("No tie to resolve");
     }
 
     // Randomly select one of the tied players
@@ -272,11 +272,11 @@ export class GameService {
   async continueToNextRound(roomId: string): Promise<GameState> {
     const gameState = await this.getGameState(roomId);
     if (!gameState) {
-      throw new NotFoundException('Game not found');
+      throw new NotFoundException("Game not found");
     }
 
     if (gameState.phase !== GamePhase.RESULTS) {
-      throw new BadRequestException('Not in results phase');
+      throw new BadRequestException("Not in results phase");
     }
 
     // Check victory conditions again
@@ -333,18 +333,15 @@ export class GameService {
     }
   }
 
-  async getPlayerRole(
-    roomId: string,
-    userId: string,
-  ): Promise<{ isImpostor: boolean; secretWord: string | null }> {
+  async getPlayerRole(roomId: string, userId: string): Promise<{ isImpostor: boolean; secretWord: string | null }> {
     const gameState = await this.getGameState(roomId);
     if (!gameState) {
-      throw new NotFoundException('Game not found');
+      throw new NotFoundException("Game not found");
     }
 
     const player = gameState.players.find((p) => p.userId === userId);
     if (!player) {
-      throw new NotFoundException('Player not found in game');
+      throw new NotFoundException("Player not found in game");
     }
 
     return {

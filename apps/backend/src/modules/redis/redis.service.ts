@@ -1,9 +1,9 @@
-import { Injectable, Inject, OnModuleDestroy } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import { Injectable, Inject, OnModuleDestroy } from "@nestjs/common";
+import { Redis } from "ioredis";
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  constructor(@Inject('REDIS_CLIENT') private readonly client: Redis) {}
+  constructor(@Inject("REDIS_CLIENT") private readonly client: Redis) {}
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
     if (ttl) {

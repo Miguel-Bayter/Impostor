@@ -1,5 +1,5 @@
-import { createContext, type Dispatch } from 'react';
-import type { State, Action } from '@/reducers/gameReducer';
+import { createContext, type Dispatch } from "react";
+import type { State, Action } from "@/reducers/gameReducer";
 
 export interface GameContextProps {
   state: State;

@@ -1,4 +1,4 @@
-import type { SharedAuthResponse, SharedUserPayload } from '@impostor/types';
+import type { SharedAuthResponse, SharedUserPayload } from "@impostor/types";
 
 export type UserPayload = SharedUserPayload;
 

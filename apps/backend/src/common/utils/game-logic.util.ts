@@ -1,324 +1,324 @@
-import { GamePlayer } from '../../types/game.types';
+import { GamePlayer } from "../../types/game.types";
 
 // Base de datos de palabras secretas
 const WORDS_DATABASE = [
   // Animales
-  'vaca',
-  'perro',
-  'gato',
-  'león',
-  'tigre',
-  'elefante',
-  'jirafa',
-  'zebra',
-  'oso',
-  'lobo',
-  'conejo',
-  'ardilla',
-  'pájaro',
-  'águila',
-  'pez',
-  'delfín',
-  'ballena',
-  'tiburón',
-  'caballo',
-  'cerdo',
-  'oveja',
-  'gallina',
-  'pato',
+  "vaca",
+  "perro",
+  "gato",
+  "león",
+  "tigre",
+  "elefante",
+  "jirafa",
+  "zebra",
+  "oso",
+  "lobo",
+  "conejo",
+  "ardilla",
+  "pájaro",
+  "águila",
+  "pez",
+  "delfín",
+  "ballena",
+  "tiburón",
+  "caballo",
+  "cerdo",
+  "oveja",
+  "gallina",
+  "pato",
 
   // Comida
-  'pizza',
-  'hamburguesa',
-  'pasta',
-  'ensalada',
-  'sopa',
-  'sandwich',
-  'taco',
-  'sushi',
-  'helado',
-  'pastel',
-  'chocolate',
-  'manzana',
-  'plátano',
-  'naranja',
-  'fresa',
-  'uva',
-  'pan',
-  'queso',
-  'leche',
-  'huevo',
-  'arroz',
-  'pollo',
+  "pizza",
+  "hamburguesa",
+  "pasta",
+  "ensalada",
+  "sopa",
+  "sandwich",
+  "taco",
+  "sushi",
+  "helado",
+  "pastel",
+  "chocolate",
+  "manzana",
+  "plátano",
+  "naranja",
+  "fresa",
+  "uva",
+  "pan",
+  "queso",
+  "leche",
+  "huevo",
+  "arroz",
+  "pollo",
 
   // Deportes
-  'fútbol',
-  'baloncesto',
-  'tenis',
-  'natación',
-  'ciclismo',
-  'correr',
-  'voleibol',
-  'béisbol',
-  'golf',
-  'boxeo',
-  'karate',
-  'yoga',
-  'gimnasia',
+  "fútbol",
+  "baloncesto",
+  "tenis",
+  "natación",
+  "ciclismo",
+  "correr",
+  "voleibol",
+  "béisbol",
+  "golf",
+  "boxeo",
+  "karate",
+  "yoga",
+  "gimnasia",
 
   // Profesiones
-  'médico',
-  'profesor',
-  'bombero',
-  'policía',
-  'cocinero',
-  'ingeniero',
-  'arquitecto',
-  'músico',
-  'artista',
-  'escritor',
-  'periodista',
-  'abogado',
-  'piloto',
-  'enfermero',
-  'dentista',
-  'veterinario',
+  "médico",
+  "profesor",
+  "bombero",
+  "policía",
+  "cocinero",
+  "ingeniero",
+  "arquitecto",
+  "músico",
+  "artista",
+  "escritor",
+  "periodista",
+  "abogado",
+  "piloto",
+  "enfermero",
+  "dentista",
+  "veterinario",
 
   // Lugares
-  'hospital',
-  'escuela',
-  'parque',
-  'playa',
-  'montaña',
-  'ciudad',
-  'pueblo',
-  'biblioteca',
-  'museo',
-  'cine',
-  'restaurante',
-  'hotel',
-  'aeropuerto',
-  'estación',
-  'supermercado',
-  'iglesia',
-  'estadio',
+  "hospital",
+  "escuela",
+  "parque",
+  "playa",
+  "montaña",
+  "ciudad",
+  "pueblo",
+  "biblioteca",
+  "museo",
+  "cine",
+  "restaurante",
+  "hotel",
+  "aeropuerto",
+  "estación",
+  "supermercado",
+  "iglesia",
+  "estadio",
 
   // Transporte
-  'coche',
-  'autobús',
-  'tren',
-  'avión',
-  'barco',
-  'bicicleta',
-  'motocicleta',
-  'helicóptero',
-  'submarino',
-  'metro',
-  'taxi',
+  "coche",
+  "autobús",
+  "tren",
+  "avión",
+  "barco",
+  "bicicleta",
+  "motocicleta",
+  "helicóptero",
+  "submarino",
+  "metro",
+  "taxi",
 
   // Tecnología
-  'computadora',
-  'teléfono',
-  'tablet',
-  'televisión',
-  'radio',
-  'cámara',
-  'auriculares',
-  'ratón',
-  'teclado',
-  'impresora',
-  'internet',
-  'wifi',
+  "computadora",
+  "teléfono",
+  "tablet",
+  "televisión",
+  "radio",
+  "cámara",
+  "auriculares",
+  "ratón",
+  "teclado",
+  "impresora",
+  "internet",
+  "wifi",
 
   // Naturaleza
-  'árbol',
-  'flor',
-  'hoja',
-  'agua',
-  'fuego',
-  'tierra',
-  'aire',
-  'sol',
-  'luna',
-  'estrella',
-  'nube',
-  'lluvia',
-  'nieve',
-  'viento',
-  'mar',
-  'río',
-  'lago',
-  'bosque',
-  'desierto',
-  'volcán',
+  "árbol",
+  "flor",
+  "hoja",
+  "agua",
+  "fuego",
+  "tierra",
+  "aire",
+  "sol",
+  "luna",
+  "estrella",
+  "nube",
+  "lluvia",
+  "nieve",
+  "viento",
+  "mar",
+  "río",
+  "lago",
+  "bosque",
+  "desierto",
+  "volcán",
 
   // Objetos del hogar
-  'mesa',
-  'silla',
-  'cama',
-  'sofá',
-  'ventana',
-  'puerta',
-  'espejo',
-  'lámpara',
-  'reloj',
-  'libro',
-  'pluma',
-  'cuaderno',
-  'maleta',
+  "mesa",
+  "silla",
+  "cama",
+  "sofá",
+  "ventana",
+  "puerta",
+  "espejo",
+  "lámpara",
+  "reloj",
+  "libro",
+  "pluma",
+  "cuaderno",
+  "maleta",
 
   // Ropa
-  'camisa',
-  'pantalón',
-  'vestido',
-  'zapatos',
-  'sombrero',
-  'guantes',
-  'bufanda',
-  'chaqueta',
-  'abrigo',
-  'calcetines',
-  'cinturón',
+  "camisa",
+  "pantalón",
+  "vestido",
+  "zapatos",
+  "sombrero",
+  "guantes",
+  "bufanda",
+  "chaqueta",
+  "abrigo",
+  "calcetines",
+  "cinturón",
 
   // Instrumentos musicales
-  'guitarra',
-  'piano',
-  'violín',
-  'trompeta',
-  'batería',
-  'flauta',
-  'saxofón',
-  'arpa',
-  'tambor',
-  'acordeón',
+  "guitarra",
+  "piano",
+  "violín",
+  "trompeta",
+  "batería",
+  "flauta",
+  "saxofón",
+  "arpa",
+  "tambor",
+  "acordeón",
 
   // Colores
-  'rojo',
-  'azul',
-  'verde',
-  'amarillo',
-  'naranja',
-  'morado',
-  'rosa',
-  'negro',
-  'blanco',
-  'gris',
-  'marrón',
-  'dorado',
-  'plateado',
+  "rojo",
+  "azul",
+  "verde",
+  "amarillo",
+  "naranja",
+  "morado",
+  "rosa",
+  "negro",
+  "blanco",
+  "gris",
+  "marrón",
+  "dorado",
+  "plateado",
 
   // Emociones
-  'felicidad',
-  'tristeza',
-  'alegría',
-  'miedo',
-  'sorpresa',
-  'enojo',
-  'amor',
-  'odio',
-  'esperanza',
-  'calma',
-  'ansiedad',
+  "felicidad",
+  "tristeza",
+  "alegría",
+  "miedo",
+  "sorpresa",
+  "enojo",
+  "amor",
+  "odio",
+  "esperanza",
+  "calma",
+  "ansiedad",
 
   // Acciones
-  'caminar',
-  'saltar',
-  'nadar',
-  'volar',
-  'bailar',
-  'cantar',
-  'dormir',
-  'comer',
-  'beber',
-  'leer',
-  'escribir',
-  'dibujar',
-  'pintar',
+  "caminar",
+  "saltar",
+  "nadar",
+  "volar",
+  "bailar",
+  "cantar",
+  "dormir",
+  "comer",
+  "beber",
+  "leer",
+  "escribir",
+  "dibujar",
+  "pintar",
 
   // Tiempo
-  'mañana',
-  'tarde',
-  'noche',
-  'día',
-  'semana',
-  'mes',
-  'año',
-  'hora',
-  'minuto',
-  'segundo',
-  'ayer',
-  'hoy',
-  'pasado',
-  'futuro',
+  "mañana",
+  "tarde",
+  "noche",
+  "día",
+  "semana",
+  "mes",
+  "año",
+  "hora",
+  "minuto",
+  "segundo",
+  "ayer",
+  "hoy",
+  "pasado",
+  "futuro",
 
   // Cuerpo humano
-  'cabeza',
-  'brazo',
-  'pierna',
-  'mano',
-  'pie',
-  'ojo',
-  'oreja',
-  'nariz',
-  'boca',
-  'diente',
-  'cabello',
-  'corazón',
-  'pulmón',
-  'hueso',
+  "cabeza",
+  "brazo",
+  "pierna",
+  "mano",
+  "pie",
+  "ojo",
+  "oreja",
+  "nariz",
+  "boca",
+  "diente",
+  "cabello",
+  "corazón",
+  "pulmón",
+  "hueso",
 
   // Materiales
-  'madera',
-  'metal',
-  'plástico',
-  'vidrio',
-  'papel',
-  'tela',
-  'piedra',
-  'arena',
-  'barro',
-  'hierro',
-  'oro',
-  'plata',
-  'diamante',
+  "madera",
+  "metal",
+  "plástico",
+  "vidrio",
+  "papel",
+  "tela",
+  "piedra",
+  "arena",
+  "barro",
+  "hierro",
+  "oro",
+  "plata",
+  "diamante",
 
   // Formas
-  'círculo',
-  'cuadrado',
-  'triángulo',
-  'rectángulo',
-  'óvalo',
-  'hexágono',
-  'pentágono',
+  "círculo",
+  "cuadrado",
+  "triángulo",
+  "rectángulo",
+  "óvalo",
+  "hexágono",
+  "pentágono",
 
   // Estaciones
-  'primavera',
-  'verano',
-  'otoño',
-  'invierno',
+  "primavera",
+  "verano",
+  "otoño",
+  "invierno",
 
   // Días de la semana
-  'lunes',
-  'martes',
-  'miércoles',
-  'jueves',
-  'viernes',
-  'sábado',
-  'domingo',
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+  "domingo",
 
   // Meses
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
 ];
 
 export interface ValidationResult {
@@ -335,7 +335,7 @@ export interface VotingResults {
 }
 
 export interface VictoryResult {
-  winner: 'citizens' | 'impostor' | null;
+  winner: "citizens" | "impostor" | null;
   message: string;
 }
 
@@ -357,7 +357,7 @@ export function validateClueNotRepeated(
   const normalizedClue = clue.trim().toLowerCase();
 
   if (!existingClues || existingClues.length === 0) {
-    return { isValid: true, errorMessage: '' };
+    return { isValid: true, errorMessage: "" };
   }
 
   const normalizedExistingClues = existingClues.map((c) => c.clue.trim().toLowerCase());
@@ -365,11 +365,11 @@ export function validateClueNotRepeated(
   if (normalizedExistingClues.includes(normalizedClue)) {
     return {
       isValid: false,
-      errorMessage: 'Esta pista ya fue usada por otro jugador. Por favor, ingresa otra palabra.',
+      errorMessage: "Esta pista ya fue usada por otro jugador. Por favor, ingresa otra palabra.",
     };
   }
 
-  return { isValid: true, errorMessage: '' };
+  return { isValid: true, errorMessage: "" };
 }
 
 export function validateClue(
@@ -380,14 +380,14 @@ export function validateClue(
   if (!clue || !clue.trim()) {
     return {
       isValid: false,
-      errorMessage: 'Por favor, ingresa una pista',
+      errorMessage: "Por favor, ingresa una pista",
     };
   }
 
   if (clue.trim().length < 2) {
     return {
       isValid: false,
-      errorMessage: 'La pista debe tener al menos 2 caracteres',
+      errorMessage: "La pista debe tener al menos 2 caracteres",
     };
   }
 
@@ -399,23 +399,19 @@ export function validateClue(
   if (checkWordGuess(clue, secretWord)) {
     return {
       isValid: false,
-      errorMessage: 'No puedes usar la palabra secreta como pista',
+      errorMessage: "No puedes usar la palabra secreta como pista",
     };
   }
 
-  return { isValid: true, errorMessage: '' };
+  return { isValid: true, errorMessage: "" };
 }
 
-export function validateVote(
-  voterId: string,
-  votedPlayerId: string,
-  activePlayers: GamePlayer[],
-): ValidationResult {
+export function validateVote(voterId: string, votedPlayerId: string, activePlayers: GamePlayer[]): ValidationResult {
   const voter = activePlayers.find((p) => p.userId === voterId);
   if (!voter || voter.isEliminated) {
     return {
       isValid: false,
-      errorMessage: 'El votante no es válido o ha sido eliminado',
+      errorMessage: "El votante no es válido o ha sido eliminado",
     };
   }
 
@@ -423,24 +419,21 @@ export function validateVote(
   if (!voted || voted.isEliminated) {
     return {
       isValid: false,
-      errorMessage: 'El jugador votado no es válido o ha sido eliminado',
+      errorMessage: "El jugador votado no es válido o ha sido eliminado",
     };
   }
 
   if (voterId === votedPlayerId) {
     return {
       isValid: false,
-      errorMessage: 'No puedes votar por ti mismo',
+      errorMessage: "No puedes votar por ti mismo",
     };
   }
 
-  return { isValid: true, errorMessage: '' };
+  return { isValid: true, errorMessage: "" };
 }
 
-export function calculateVotingResults(
-  votes: Record<string, string>,
-  _players: GamePlayer[],
-): VotingResults {
+export function calculateVotingResults(votes: Record<string, string>, _players: GamePlayer[]): VotingResults {
   const voteCounts: Record<string, number> = {};
   Object.values(votes).forEach((votedId) => {
     voteCounts[votedId] = (voteCounts[votedId] || 0) + 1;
@@ -488,21 +481,21 @@ export function checkVictoryConditions(players: GamePlayer[]): VictoryResult {
 
   if (activeImpostors.length === 0) {
     return {
-      winner: 'citizens',
-      message: 'Todos los impostores han sido eliminados. Los ciudadanos ganan.',
+      winner: "citizens",
+      message: "Todos los impostores han sido eliminados. Los ciudadanos ganan.",
     };
   }
 
   if (activeImpostors.length >= activeCitizens.length) {
     return {
-      winner: 'impostor',
-      message: 'El impostor ha sobrevivido hasta el final. Los impostores ganan.',
+      winner: "impostor",
+      message: "El impostor ha sobrevivido hasta el final. Los impostores ganan.",
     };
   }
 
   return {
     winner: null,
-    message: 'El juego continúa...',
+    message: "El juego continúa...",
   };
 }
 
@@ -510,32 +503,32 @@ export function validateGameRules(numPlayers: number, numImpostors: number): Val
   if (numPlayers < 4) {
     return {
       isValid: false,
-      errorMessage: 'Se requieren al menos 4 jugadores',
+      errorMessage: "Se requieren al menos 4 jugadores",
     };
   }
 
   if (numImpostors < 1) {
     return {
       isValid: false,
-      errorMessage: 'Debe haber al menos 1 impostor',
+      errorMessage: "Debe haber al menos 1 impostor",
     };
   }
 
   if (numImpostors > 3) {
     return {
       isValid: false,
-      errorMessage: 'Máximo 3 impostores permitidos',
+      errorMessage: "Máximo 3 impostores permitidos",
     };
   }
 
   if (numImpostors >= numPlayers) {
     return {
       isValid: false,
-      errorMessage: 'No puede haber más impostores que jugadores',
+      errorMessage: "No puede haber más impostores que jugadores",
     };
   }
 
-  return { isValid: true, errorMessage: '' };
+  return { isValid: true, errorMessage: "" };
 }
 
 export { WORDS_DATABASE };

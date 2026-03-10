@@ -26,7 +26,7 @@
  * ```
  */
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LogContext {
   [key: string]: unknown;
@@ -57,7 +57,7 @@ export class Logger {
    * Format log message with namespace
    */
   private formatMessage(level: LogLevel, message: string): string {
-    const timestamp = new Date().toISOString().split('T')[1].split('.')[0]; // HH:MM:SS
+    const timestamp = new Date().toISOString().split("T")[1].split(".")[0]; // HH:MM:SS
     const levelPrefix = level.toUpperCase();
     return `[${timestamp}] [${levelPrefix}] [${this.namespace}] ${message}`;
   }
@@ -67,7 +67,7 @@ export class Logger {
    */
   private formatContext(context?: LogContext): string {
     if (!context || Object.keys(context).length === 0) {
-      return '';
+      return "";
     }
 
     try {
@@ -91,7 +91,7 @@ export class Logger {
       return; // Silent in production
     }
 
-    const formattedMessage = this.formatMessage('debug', message);
+    const formattedMessage = this.formatMessage("debug", message);
     const formattedContext = this.formatContext(context);
 
     console.log(formattedMessage + formattedContext);
@@ -106,7 +106,7 @@ export class Logger {
       return; // Silent in production
     }
 
-    const formattedMessage = this.formatMessage('info', message);
+    const formattedMessage = this.formatMessage("info", message);
     const formattedContext = this.formatContext(context);
 
     console.log(formattedMessage + formattedContext);
@@ -117,7 +117,7 @@ export class Logger {
    * Enabled in all environments
    */
   warn(message: string, context?: LogContext): void {
-    const formattedMessage = this.formatMessage('warn', message);
+    const formattedMessage = this.formatMessage("warn", message);
     const formattedContext = this.formatContext(context);
 
     console.warn(formattedMessage + formattedContext);
@@ -128,16 +128,16 @@ export class Logger {
    * Enabled in all environments
    */
   error(message: string, error?: Error, context?: LogContext): void {
-    const formattedMessage = this.formatMessage('error', message);
+    const formattedMessage = this.formatMessage("error", message);
     const formattedContext = this.formatContext(context);
 
     if (error instanceof Error) {
-      console.error(formattedMessage, '\n', error, formattedContext);
+      console.error(formattedMessage, "\n", error, formattedContext);
 
       // In production, you might want to send to external service here
       // e.g., Sentry.captureException(error, { tags: { namespace: this.namespace }, extra: context });
     } else if (error !== undefined) {
-      console.error(formattedMessage, '\n', error, formattedContext);
+      console.error(formattedMessage, "\n", error, formattedContext);
     } else {
       console.error(formattedMessage + formattedContext);
     }

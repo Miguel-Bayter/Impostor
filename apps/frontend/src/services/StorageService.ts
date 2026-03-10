@@ -18,9 +18,9 @@
  * Using const object instead of enum for compatibility with erasableSyntaxOnly
  */
 export const StorageKey = {
-  AUTH_TOKEN: 'impostor_token',
-  ROOM_ID: 'impostor_room_id',
-  USER_PREFERENCES: 'impostor_preferences',
+  AUTH_TOKEN: "impostor_token",
+  ROOM_ID: "impostor_room_id",
+  USER_PREFERENCES: "impostor_preferences",
 } as const;
 
 export type StorageKey = (typeof StorageKey)[keyof typeof StorageKey];
@@ -31,13 +31,13 @@ export type StorageKey = (typeof StorageKey)[keyof typeof StorageKey];
 export class StorageService {
   private static isAvailable(): boolean {
     try {
-      if (typeof window === 'undefined' || !window.localStorage) {
+      if (typeof window === "undefined" || !window.localStorage) {
         return false;
       }
 
       // Test if storage is actually accessible (can fail in private mode)
-      const testKey = '__storage_test__';
-      window.localStorage.setItem(testKey, 'test');
+      const testKey = "__storage_test__";
+      window.localStorage.setItem(testKey, "test");
       window.localStorage.removeItem(testKey);
       return true;
     } catch {
@@ -86,7 +86,7 @@ export class StorageService {
     }
 
     try {
-      const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+      const serialized = typeof value === "string" ? value : JSON.stringify(value);
       window.localStorage.setItem(key, serialized);
       return true;
     } catch (error) {
@@ -127,7 +127,7 @@ export class StorageService {
       window.localStorage.clear();
       return true;
     } catch (error) {
-      console.warn('[StorageService] Failed to clear storage:', error);
+      console.warn("[StorageService] Failed to clear storage:", error);
       return false;
     }
   }

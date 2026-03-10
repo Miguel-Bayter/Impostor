@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UserRepository } from '../../database/repositories/user.repository';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { AuthResponse, UserPayload } from '../../types/user.types';
-import { sanitizeEmail, sanitizeUsername } from '../../common/utils/sanitizer.util';
+import { Injectable, UnauthorizedException, ConflictException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UserRepository } from "../../database/repositories/user.repository";
+import { RegisterDto } from "./dto/register.dto";
+import { LoginDto } from "./dto/login.dto";
+import { AuthResponse, UserPayload } from "../../types/user.types";
+import { sanitizeEmail, sanitizeUsername } from "../../common/utils/sanitizer.util";
 
 @Injectable()
 export class AuthService {
@@ -18,17 +18,17 @@ export class AuthService {
     const username = sanitizeUsername(dto.username);
 
     if (!email) {
-      throw new ConflictException('Invalid email format');
+      throw new ConflictException("Invalid email format");
     }
 
     const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException("Email already registered");
     }
 
     const existingUsername = await this.userRepository.findByUsername(username);
     if (existingUsername) {
-      throw new ConflictException('Username already taken');
+      throw new ConflictException("Username already taken");
     }
 
     const user = await this.userRepository.create(username, email, dto.password);
@@ -43,17 +43,17 @@ export class AuthService {
   async login(dto: LoginDto): Promise<AuthResponse> {
     const email = sanitizeEmail(dto.email);
     if (!email) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const isPasswordValid = await user.comparePassword(dto.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     await this.userRepository.updateLastLogin(user._id);
