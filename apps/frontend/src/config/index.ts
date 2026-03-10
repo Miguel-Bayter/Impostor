@@ -20,11 +20,11 @@ if (isProduction) {
     import.meta.env.VITE_SERVER_URL ||
     (window.location.protocol === 'https:'
       ? `https://${window.location.hostname.replace('impostor-frontend', 'impostor-backend')}`
-      : `http://${window.location.hostname}:3000`);
+      : `http://${window.location.hostname}:3001`);
 } else {
   SERVER_URL = ((window as CustomWindow).SERVER_URL ||
     import.meta.env.VITE_SERVER_URL ||
-    'http://localhost:3000') as string;
+    'http://localhost:3001') as string;
 }
 
 export const APP_CONFIG = {

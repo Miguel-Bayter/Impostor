@@ -9,12 +9,29 @@
     "lint:fix": "pnpm -r --filter ./apps/backend --filter ./apps/frontend lint:fix",
     "lint": "pnpm lint:check",
     "test": "pnpm -r --filter ./apps/backend --filter ./apps/frontend test",
-    "types:check": "pnpm --filter ./apps/backend types:check && pnpm --filter ./apps/frontend types:check",
-    "type-check": "pnpm types:check",
-    "check-types": "pnpm types:check",
+    "types:check": "pnpm -r --filter ./apps/backend --filter ./apps/frontend types:check",
     "validate": "pnpm -r --parallel --filter ./apps/backend --filter ./apps/frontend validate",
     "format:check": "pnpm -r --filter ./apps/backend --filter ./apps/frontend format:check",
     "format:fix": "pnpm -r --filter ./apps/backend --filter ./apps/frontend format:fix",
-    "format": "pnpm format:fix"
+    "format": "pnpm format:fix",
+    "dc:up": "docker compose up -d",
+    "dc:down": "docker compose down",
+    "dc:logs": "docker compose logs -f",
+    "dc:ps": "docker compose ps",
+    "dc:restart": "docker compose restart",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4",
+    "typescript-eslint": "^8.46.4"
   }
 }

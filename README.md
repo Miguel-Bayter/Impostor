@@ -1,58 +1,91 @@
 # Impostor Monorepo
 
-Aplicacion multijugador tipo Impostor, organizada como monorepo con frontend y backend en TypeScript.
+Multiplayer Impostor-style game, organized as a monorepo with TypeScript frontend and backend.
 
-## Stack Tecnico
+## Tech Stack
 
 - Monorepo: pnpm workspaces
 - Frontend: React 19, Vite, TypeScript, Tailwind CSS
 - Backend: NestJS, TypeScript, Socket.IO
-- Base de datos: MongoDB
-- Cache/cola (configurable): Redis
-- Tipos compartidos: `@impostor/types` (workspace package)
+- Database: MongoDB
+- Cache/queue (optional): Redis
+- Shared types: `@impostor/types` (workspace package)
 
-## Estructura del Proyecto
+## Project Structure
 
 ```txt
 apps/
-  backend/      # API REST + WebSocket gateway (NestJS)
-  frontend/     # Cliente web (React + Vite)
+  backend/      # REST API + WebSocket gateway (NestJS)
+  frontend/     # Web client (React + Vite)
 packages/
-  types/        # Contratos de tipos compartidos FE/BE
+  types/        # Shared FE/BE type contracts
 ```
 
-## Requisitos Previos
+## Prerequisites
 
-Instala antes de ejecutar:
+Install before running:
 
 1. Node.js >= 20
 2. pnpm >= 10
-3. MongoDB en ejecucion (local o remoto)
-4. Redis disponible (si tu configuracion backend lo requiere)
+3. MongoDB running (local or remote)
+4. Redis available (if your backend config requires it)
 
-Verifica versiones:
+Verify versions:
 
 ```bash
 node -v
 pnpm -v
 ```
 
-## Instalacion
+## Installation
 
-Desde la raiz del proyecto:
+From the repository root:
 
 ```bash
 pnpm install
 ```
 
-## Configuracion de Entorno
+## Local Dependencies with Docker (Mongo + Redis)
+
+If you do not want to install MongoDB and Redis locally, you can start them with Docker:
+
+```bash
+docker compose up -d
+```
+
+Or using the monorepo scripts:
+
+```bash
+pnpm dc:up
+```
+
+To stop them:
+
+```bash
+docker compose down
+```
+
+Or using the monorepo scripts:
+
+```bash
+pnpm dc:down
+```
+
+Logs and status:
+
+```bash
+pnpm dc:logs
+pnpm dc:ps
+```
+
+## Environment Configuration
 
 ### Backend
 
-Archivo: `apps/backend/.env`
-Puedes basarte en `apps/backend/.env.example`.
+File: `apps/backend/.env`
+Use `apps/backend/.env.example` as a base.
 
-Variables minimas recomendadas:
+Minimum recommended variables:
 
 ```env
 NODE_ENV=development
@@ -66,41 +99,50 @@ ALLOWED_ORIGINS=http://localhost:5173
 
 ### Frontend
 
-Archivo: `apps/frontend/.env`
-Puedes basarte en `apps/frontend/.env.example`.
+File: `apps/frontend/.env`
+Use `apps/frontend/.env.example` as a base.
 
 ```env
 VITE_SERVER_URL=http://localhost:3001
 ```
 
-## Ejecucion en Desarrollo
+## Development Run
 
-Desde la raiz (levanta backend + frontend en paralelo):
+From the repository root (runs backend + frontend in parallel):
 
 ```bash
 pnpm dev
 ```
 
-Servicios esperados:
+Expected services:
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:3001`
 
-## Scripts Utiles (Raiz)
+## Useful Scripts (Root)
 
 ```bash
-pnpm dev          # Ejecuta backend y frontend en paralelo
-pnpm build        # Build de backend y frontend
-pnpm validate     # Ejecuta format:check + lint:check + types:check en paralelo por app
-pnpm lint:check   # Lint en modo verificacion
-pnpm lint:fix     # Lint con auto-fix
-pnpm test         # Tests de backend y frontend
-pnpm types:check  # Verificacion de tipos TS en ambos apps
-pnpm format:check # Verifica formato
-pnpm format:fix   # Formatea codigo en ambos apps
+pnpm dev          # Run backend and frontend in parallel
+pnpm build        # Build backend and frontend
+pnpm validate     # Run format:check + lint:check + types:check in parallel per app
+pnpm lint:check   # Lint in check mode
+pnpm lint:fix     # Lint with auto-fix
+pnpm test         # Backend and frontend tests
+pnpm types:check  # TypeScript check for both apps
+pnpm format:check # Format check
+pnpm format:fix   # Format code
+pnpm dc:up        # Start MongoDB + Redis (Docker)
+pnpm dc:down      # Stop MongoDB + Redis (Docker)
+pnpm dc:logs      # Docker Compose logs
+pnpm dc:ps        # Docker services status
+pnpm dc:restart   # Restart Docker services
 ```
 
-## Scripts por Aplicacion
+## Tooling
+
+ESLint, Prettier, lint-staged, and Husky are centralized at the repository root. App scripts call root binaries via `pnpm -w exec`.
+
+## App Scripts
 
 ### Backend
 
@@ -130,21 +172,21 @@ pnpm --filter ./apps/frontend format:check
 pnpm --filter ./apps/frontend format:fix
 ```
 
-## Contratos Compartidos
+## Shared Contracts
 
-El paquete `@impostor/types` define contratos comunes para frontend y backend.
+The `@impostor/types` package defines shared contracts for frontend and backend.
 
-Convenciones actuales:
+Current conventions:
 
-- Identificador de usuario: `userId`
-- Resultado de partida: `winner` (singular)
+- User identifier: `userId`
+- Game result: `winner` (singular)
 
-## Troubleshooting Rapido
+## Quick Troubleshooting
 
-- Si el frontend no conecta al backend:
-  - revisa `VITE_SERVER_URL` en `apps/frontend/.env`
-  - valida `ALLOWED_ORIGINS` en `apps/backend/.env`
-- Si falla conexion DB:
-  - verifica `MONGODB_URI`
-- Si falla arranque del backend por configuracion:
-  - valida `JWT_SECRET`, `PORT` y variables requeridas en `.env`
+- If the frontend does not connect to the backend:
+  - check `VITE_SERVER_URL` in `apps/frontend/.env`
+  - validate `ALLOWED_ORIGINS` in `apps/backend/.env`
+- If DB connection fails:
+  - verify `MONGODB_URI`
+- If the backend fails to start due to config:
+  - validate `JWT_SECRET`, `PORT`, and required `.env` variables

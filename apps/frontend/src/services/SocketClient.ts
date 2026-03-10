@@ -89,7 +89,7 @@ export class SocketClient {
   private callbacks: SocketCallbacks = {};
   private logger: Logger = new Logger('SocketClient');
 
-  constructor(serverUrl: string = 'http://localhost:3000') {
+  constructor(serverUrl: string = 'http://localhost:3001') {
     this.serverUrl = serverUrl;
 
     // Cargar roomId desde StorageService si está disponible

@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+HAS_ERROR=0
+
+echo "🎨 Running lint-staged (Prettier + ESLint on staged files)..."
+pnpm -w exec lint-staged || {
+  echo "❌ Error: lint-staged found issues that could not be fixed automatically."
+  HAS_ERROR=1
+}
+
+echo "🔍 Checking TypeScript types..."
+pnpm types:check || {
+  echo "🤡😂❌🤡 Failed Type check. 🤡😂❌🤡
+Are you seriously trying to write that? Make the changes required above."
+  HAS_ERROR=1
+}
+
+if [ "$HAS_ERROR" -ne 0 ]; then
+  echo "⛔ Commit aborted due to lint, format or type errors."
+  exit 1
+fi
+
+echo "✅ Files formatted, fixed, and ready for commit."

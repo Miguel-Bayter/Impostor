@@ -1,73 +1,72 @@
-# React + TypeScript + Vite
+# Impostor Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web frontend for the multiplayer Impostor-style game. React 19 + Vite + TypeScript. Consumes the backend REST API and Socket.IO.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js >= 20
+- pnpm >= 10
+- Backend available (local or cloud)
 
-## React Compiler
+## Local Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+From the monorepo root:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Create the environment file:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp apps/frontend/.env.example apps/frontend/.env
 ```
+
+Set `VITE_SERVER_URL` in `apps/frontend/.env`:
+
+```env
+VITE_SERVER_URL=http://localhost:3001
+```
+
+Start the frontend:
+
+```bash
+pnpm --filter ./apps/frontend dev
+```
+
+Local server:
+- http://localhost:5173
+
+## Production (Cloudflare Pages)
+
+1. Ensure the backend is publicly available (GCP/Azure) and CORS is correct.
+2. Build the frontend:
+
+```bash
+pnpm --filter ./apps/frontend build
+```
+
+3. Deploy to Cloudflare Pages.
+4. Set the build environment variable:
+
+```env
+VITE_SERVER_URL=https://<your-backend-domain>
+```
+
+Notes:
+- In Vite, `VITE_*` variables are injected at build time.
+- If you change `VITE_SERVER_URL`, you need a new build.
+
+## Useful Commands
+
+```bash
+pnpm --filter ./apps/frontend dev
+pnpm --filter ./apps/frontend build
+pnpm --filter ./apps/frontend test
+pnpm --filter ./apps/frontend types:check
+pnpm --filter ./apps/frontend validate
+```
+
+## Tooling
+
+ESLint, Prettier, lint-staged, and Husky are centralized at the repository root. App scripts call root binaries via `pnpm -w exec`.

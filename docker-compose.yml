@@ -1,0 +1,31 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: impostor-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - impostor-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: impostor-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - impostor-redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  impostor-mongo-data:
+  impostor-redis-data:

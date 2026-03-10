@@ -20,7 +20,7 @@ export interface ApiResponse<T = unknown> {
 
 // Create axios instance with default configuration
 const api: AxiosInstance = axios.create({
-  baseURL: (import.meta.env.VITE_SERVER_URL || 'http://localhost:3000') as string,
+  baseURL: (import.meta.env.VITE_SERVER_URL || 'http://localhost:3001') as string,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
