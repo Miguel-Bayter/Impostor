@@ -25,7 +25,11 @@ export interface SharedServerToClientEvents {
   'room:playerLeft': (data: { player: SharedRoomPlayer; room: SharedRoom }) => void;
   'room:playerDisconnected': (data: { room: SharedRoom; userId: string }) => void;
   'room:state': (data: { room: SharedRoom }) => void;
-  'room:reconnected': (data: { room: SharedRoom; gameState?: SharedGameState; message: string }) => void;
+  'room:reconnected': (data: {
+    room: SharedRoom;
+    gameState?: SharedGameState;
+    message: string;
+  }) => void;
   'room:list': (data: { rooms: SharedRoom[] }) => void;
   'room:data': (data: { room: SharedRoom }) => void;
   'room:error': (data: SharedRoomError) => void;
@@ -34,10 +38,21 @@ export interface SharedServerToClientEvents {
   'game:role': (data: { isImpostor: boolean; secretWord: string }) => void;
   'game:roleConfirmed': (data: { success: boolean }) => void;
   'game:state': (data: { gameState: SharedGameState; phase: SharedGamePhase }) => void;
-  'game:clueSubmitted': (data: { gameState?: SharedGameState; playerId: string; playerName?: string; clue?: string; roomId?: string }) => void;
+  'game:clueSubmitted': (data: {
+    gameState?: SharedGameState;
+    playerId: string;
+    playerName?: string;
+    clue?: string;
+    roomId?: string;
+  }) => void;
   'game:clueAccepted': (data: { success: boolean }) => void;
   'game:turnChanged': (data: { currentTurn: number }) => void;
-  'game:voteSubmitted': (data: { gameState?: SharedGameState; voterId: string; voterName?: string; votedPlayerId?: string }) => void;
+  'game:voteSubmitted': (data: {
+    gameState?: SharedGameState;
+    voterId: string;
+    voterName?: string;
+    votedPlayerId?: string;
+  }) => void;
   'game:voteAccepted': (data: { success: boolean }) => void;
   'game:votingResults': (data: {
     results: { playerId: string; votes: number }[];

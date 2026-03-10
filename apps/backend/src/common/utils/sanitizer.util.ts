@@ -1,4 +1,4 @@
-import * as validator from 'validator';
+import * as validator from "validator";
 
 const LIMITS = {
   CLUE_MAX_LENGTH: 50,
@@ -9,7 +9,7 @@ const LIMITS = {
 };
 
 export function sanitizeClue(clue: string): string {
-  if (!clue || typeof clue !== 'string') return '';
+  if (!clue || typeof clue !== "string") return "";
 
   let sanitized = clue.trim();
   if (sanitized.length > LIMITS.CLUE_MAX_LENGTH) {
@@ -17,13 +17,13 @@ export function sanitizeClue(clue: string): string {
   }
 
   sanitized = validator.escape(sanitized);
-  sanitized = sanitized.replace(/\s+/g, ' ');
+  sanitized = sanitized.replace(/\s+/g, " ");
 
   return sanitized.trim();
 }
 
 export function sanitizeUsername(username: string): string {
-  if (!username || typeof username !== 'string') return '';
+  if (!username || typeof username !== "string") return "";
 
   let sanitized = username.trim();
   if (sanitized.length > LIMITS.USERNAME_MAX_LENGTH) {
@@ -31,14 +31,14 @@ export function sanitizeUsername(username: string): string {
   }
 
   sanitized = validator.escape(sanitized);
-  sanitized = sanitized.replace(/[^a-zA-Z0-9_\-\sáéíóúÁÉÍÓÚñÑüÜ]/g, '');
-  sanitized = sanitized.replace(/\s+/g, ' ');
+  sanitized = sanitized.replace(/[^a-zA-Z0-9_\-\sáéíóúÁÉÍÓÚñÑüÜ]/g, "");
+  sanitized = sanitized.replace(/\s+/g, " ");
 
   return sanitized.trim();
 }
 
 export function sanitizeEmail(email: string): string | null {
-  if (!email || typeof email !== 'string') return null;
+  if (!email || typeof email !== "string") return null;
 
   let sanitized = email.toLowerCase().trim();
   if (sanitized.length > LIMITS.EMAIL_MAX_LENGTH) {
@@ -55,7 +55,7 @@ export function sanitizeRoomName(roomName: string): string {
 }
 
 function sanitizeString(input: string, maxLength = 100): string {
-  if (!input || typeof input !== 'string') return '';
+  if (!input || typeof input !== "string") return "";
 
   let sanitized = input.trim();
   if (maxLength > 0 && sanitized.length > maxLength) {
@@ -63,13 +63,13 @@ function sanitizeString(input: string, maxLength = 100): string {
   }
 
   sanitized = validator.escape(sanitized);
-  sanitized = sanitized.replace(/\s+/g, ' ');
+  sanitized = sanitized.replace(/\s+/g, " ");
 
   return sanitized.trim();
 }
 
 export function isValidAfterSanitization(input: string): boolean {
-  if (!input || typeof input !== 'string') {
+  if (!input || typeof input !== "string") {
     return false;
   }
   return input.trim().length > 0;

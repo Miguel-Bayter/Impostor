@@ -1,12 +1,12 @@
-import { useGame } from '@/hooks/useGame';
-import { Send, Clock } from 'lucide-react';
-import { useState } from 'react';
-import { socketService } from '@/services/socket';
+import { useGame } from "@/hooks/useGame";
+import { Send, Clock } from "lucide-react";
+import { useState } from "react";
+import { socketService } from "@/services/socket";
 
 const CluePhase = () => {
   const { state } = useGame();
   const { gameState, user, room } = state;
-  const [clueText, setClueText] = useState('');
+  const [clueText, setClueText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +18,7 @@ const CluePhase = () => {
 
   const handleSubmitClue = () => {
     if (!clueText.trim()) {
-      setError('Debes escribir una pista');
+      setError("Debes escribir una pista");
       return;
     }
 
@@ -27,14 +27,14 @@ const CluePhase = () => {
 
     try {
       const socket = socketService.getInstance();
-      socket.emit('game:submitClue', {
+      socket.emit("game:submitClue", {
         roomId: room.id,
         clue: clueText.trim(),
       });
-      setClueText('');
+      setClueText("");
     } catch (err) {
       const error = err as Error;
-      setError(error.message || 'Error al enviar pista');
+      setError(error.message || "Error al enviar pista");
     } finally {
       setSubmitting(false);
     }
@@ -50,28 +50,24 @@ const CluePhase = () => {
       {/* Turno Actual */}
       <div
         className={`p-6 rounded-2xl border-2 transition-all duration-150 shadow-md ${
-          isMyTurn ? 'bg-primary/10 border-primary' : 'bg-card border-border'
+          isMyTurn ? "bg-primary/10 border-primary" : "bg-card border-border"
         }`}
       >
         <div className="flex items-center gap-3 mb-4">
           <Clock className="w-5 h-5 text-primary" />
-          <h3 className="font-bold text-lg text-foreground">{isMyTurn ? '¡Es tu turno!' : 'Esperando turno...'}</h3>
+          <h3 className="font-bold text-lg text-foreground">{isMyTurn ? "¡Es tu turno!" : "Esperando turno..."}</h3>
         </div>
 
         {isMyTurn && !hasSubmittedClue ? (
           <div className="space-y-4">
-            {error && (
-              <div className="p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className="p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">{error}</div>}
 
             <div className="flex gap-3">
               <input
                 type="text"
                 value={clueText}
                 onChange={(e) => setClueText(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmitClue()}
+                onKeyPress={(e) => e.key === "Enter" && handleSubmitClue()}
                 placeholder="Escribe tu pista aquí..."
                 maxLength={50}
                 className="flex-1 bg-input border-2 border-border rounded-md py-3.5 px-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring focus:ring-ring focus:ring-2 transition-[border-color] duration-150"
@@ -82,19 +78,15 @@ const CluePhase = () => {
                 disabled={submitting || !clueText.trim()}
                 className="px-6 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-input disabled:text-muted-foreground rounded-md font-semibold transition-all duration-150 flex items-center gap-2 text-white shadow-sm hover:shadow-md active:scale-[0.98] disabled:shadow-none"
               >
-                <span>{submitting ? 'Enviando...' : 'Enviar'}</span>
+                <span>{submitting ? "Enviando..." : "Enviar"}</span>
                 <Send className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Máximo 50 caracteres. Sé creativo pero no reveles demasiado.
-            </p>
+            <p className="text-xs text-muted-foreground">Máximo 50 caracteres. Sé creativo pero no reveles demasiado.</p>
           </div>
         ) : (
           <p className="text-muted-foreground">
-            {hasSubmittedClue
-              ? '✅ Ya enviaste tu pista. Esperando a los demás...'
-              : 'Otro jugador está dando su pista...'}
+            {hasSubmittedClue ? "✅ Ya enviaste tu pista. Esperando a los demás..." : "Otro jugador está dando su pista..."}
           </p>
         )}
       </div>

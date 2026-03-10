@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useGame } from '@/hooks/useGame';
-import { X, Hash, ArrowRight } from 'lucide-react';
+import { useState } from "react";
+import { useGame } from "@/hooks/useGame";
+import { X, Hash, ArrowRight } from "lucide-react";
 
-import { apiService } from '@/services/apiService';
-import socketService from '@/services/socket';
-import { StorageService, StorageKey } from '@/services/StorageService';
+import { apiService } from "@/services/apiService";
+import socketService from "@/services/socket";
+import { StorageService, StorageKey } from "@/services/StorageService";
 
 interface JoinRoomByCodeProps {
   onClose: () => void;
@@ -12,7 +12,7 @@ interface JoinRoomByCodeProps {
 
 const JoinRoomByCode = ({ onClose }: JoinRoomByCodeProps) => {
   const { dispatch } = useGame();
-  const [roomCode, setRoomCode] = useState('');
+  const [roomCode, setRoomCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +25,7 @@ const JoinRoomByCode = ({ onClose }: JoinRoomByCodeProps) => {
 
     // Validar que el código tenga exactamente 6 caracteres
     if (code.length !== 6) {
-      setError('El código debe tener exactamente 6 caracteres');
+      setError("El código debe tener exactamente 6 caracteres");
       setLoading(false);
       return;
     }
@@ -41,11 +41,11 @@ const JoinRoomByCode = ({ onClose }: JoinRoomByCodeProps) => {
       const socketClient = socketService.getInstance();
       socketClient.joinRoom(room.id);
 
-      dispatch({ type: 'SET_ROOM', payload: room });
+      dispatch({ type: "SET_ROOM", payload: room });
       onClose();
     } catch (err) {
       const error = err as Error;
-      setError(error.message || 'Sala no encontrada');
+      setError(error.message || "Sala no encontrada");
     } finally {
       setLoading(false);
     }
@@ -63,11 +63,7 @@ const JoinRoomByCode = ({ onClose }: JoinRoomByCodeProps) => {
 
         <p className="text-muted-foreground mb-6 text-sm">Ingresa el código de 6 caracteres de la sala</p>
 
-        {error && (
-          <div className="mb-4 p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="mb-4 p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">{error}</div>}
 
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           <div className="space-y-2">
@@ -105,7 +101,7 @@ const JoinRoomByCode = ({ onClose }: JoinRoomByCodeProps) => {
               className="flex-1 py-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-md font-medium shadow-sm hover:shadow-md transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group active:scale-[0.98]"
             >
               {loading ? (
-                'Buscando...'
+                "Buscando..."
               ) : (
                 <>
                   <span>Unirse</span>

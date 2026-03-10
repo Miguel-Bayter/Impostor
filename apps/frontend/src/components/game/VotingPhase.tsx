@@ -1,10 +1,10 @@
-import { useGame } from '@/hooks/useGame';
-import { CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
-import { socketService } from '@/services/socket';
-import { Logger, toError } from '@/services/Logger';
+import { useGame } from "@/hooks/useGame";
+import { CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { socketService } from "@/services/socket";
+import { Logger, toError } from "@/services/Logger";
 
-const logger = new Logger('VotingPhase');
+const logger = new Logger("VotingPhase");
 
 const VotingPhase = () => {
   const { state } = useGame();
@@ -23,12 +23,12 @@ const VotingPhase = () => {
     setSubmitting(true);
     try {
       const socket = socketService.getInstance().getSocket();
-      socket.emit('game:submitVote', {
+      socket.emit("game:submitVote", {
         roomId: room.id,
         targetId: selectedPlayer,
       });
     } catch (err) {
-      logger.error('Error al votar:', toError(err));
+      logger.error("Error al votar:", toError(err));
     } finally {
       setSubmitting(false);
     }
@@ -67,9 +67,9 @@ const VotingPhase = () => {
                 disabled={player.userId === user.userId}
                 className={`p-4 rounded-lg border-2 transition-all duration-150 ${
                   selectedPlayer === player.userId
-                    ? 'bg-primary/20 border-primary shadow-sm'
-                    : 'bg-hover/20 border-border hover:border-primary/30 hover:bg-hover/30'
-                } ${player.userId === user.userId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}`}
+                    ? "bg-primary/20 border-primary shadow-sm"
+                    : "bg-hover/20 border-border hover:border-primary/30 hover:bg-hover/30"
+                } ${player.userId === user.userId ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-[0.98]"}`}
               >
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-12 h-12 bg-linear-to-br from-primary to-primary-light rounded-full flex items-center justify-center font-bold text-lg text-white border-2 border-border">
@@ -77,7 +77,7 @@ const VotingPhase = () => {
                   </div>
                   <p className="font-semibold text-sm text-center text-foreground">
                     {player.username}
-                    {player.userId === user.userId && ' (Tú)'}
+                    {player.userId === user.userId && " (Tú)"}
                   </p>
                   {selectedPlayer === player.userId && <CheckCircle2 className="w-5 h-5 text-primary" />}
                 </div>
@@ -90,7 +90,7 @@ const VotingPhase = () => {
             disabled={!selectedPlayer || submitting}
             className="w-full py-4 bg-primary hover:bg-primary-hover disabled:bg-input disabled:text-muted-foreground rounded-md font-bold text-lg transition-all duration-150 disabled:cursor-not-allowed text-white shadow-md hover:shadow-lg active:scale-[0.98] disabled:shadow-none"
           >
-            {submitting ? 'Enviando voto...' : 'CONFIRMAR VOTO'}
+            {submitting ? "Enviando voto..." : "CONFIRMAR VOTO"}
           </button>
         </div>
       ) : (

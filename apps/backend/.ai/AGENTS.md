@@ -50,6 +50,7 @@ Run from repository root.
   - `pnpm --filter ./apps/backend test:e2e`
 
 Single test examples:
+
 - `pnpm --filter ./apps/backend test -- src/modules/auth/auth.service.spec.ts`
 - `pnpm --filter ./apps/backend test -- --testNamePattern="register"`
 - `pnpm --filter ./apps/backend test:e2e -- test/app.e2e-spec.ts`

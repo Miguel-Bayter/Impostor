@@ -1,10 +1,10 @@
-import { useGame } from '@/hooks/useGame';
-import { Eye, EyeOff, Crown, Shield, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
-import { socketService } from '@/services/socket';
-import { Logger, toError } from '@/services/Logger';
+import { useGame } from "@/hooks/useGame";
+import { Eye, EyeOff, Crown, Shield, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { socketService } from "@/services/socket";
+import { Logger, toError } from "@/services/Logger";
 
-const logger = new Logger('RoleScreen');
+const logger = new Logger("RoleScreen");
 
 const RoleScreen = () => {
   const { state } = useGame();
@@ -22,9 +22,9 @@ const RoleScreen = () => {
     setStarting(true);
     try {
       const socket = socketService.getInstance().getSocket();
-      socket.emit('game:startCluesPhase', { roomId: room.id });
+      socket.emit("game:startCluesPhase", { roomId: room.id });
     } catch (error) {
-      logger.error('Error al iniciar fase de pistas:', toError(error));
+      logger.error("Error al iniciar fase de pistas:", toError(error));
       setStarting(false);
     }
   };
@@ -40,11 +40,7 @@ const RoleScreen = () => {
         <button
           onClick={() => setRevealed(!revealed)}
           className={`w-full aspect-3/4 relative overflow-hidden rounded-2xl border-4 transition-all duration-150 active:scale-[0.98] ${
-            revealed
-              ? isImpostor
-                ? 'border-danger bg-danger/10'
-                : 'border-success bg-success/10'
-              : 'border-border bg-card'
+            revealed ? (isImpostor ? "border-danger bg-danger/10" : "border-success bg-success/10") : "border-border bg-card"
           }`}
         >
           {!revealed ? (
@@ -61,21 +57,19 @@ const RoleScreen = () => {
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 p-8">
               <div
                 className={`w-32 h-32 rounded-full flex items-center justify-center border-4 ${
-                  isImpostor ? 'bg-danger/20 border-danger' : 'bg-success/20 border-success'
+                  isImpostor ? "bg-danger/20 border-danger" : "bg-success/20 border-success"
                 }`}
               >
                 {isImpostor ? <Shield className="w-16 h-16 text-danger" /> : <Eye className="w-16 h-16 text-success" />}
               </div>
 
               <div className="text-center space-y-3">
-                <h3 className="text-4xl font-bold text-foreground">{isImpostor ? '🎭 IMPOSTOR' : '👥 CIUDADANO'}</h3>
+                <h3 className="text-4xl font-bold text-foreground">{isImpostor ? "🎭 IMPOSTOR" : "👥 CIUDADANO"}</h3>
 
                 {!isImpostor && gameState.secretWord && (
                   <div className="mt-6 p-4 bg-hover border-2 border-success rounded-lg shadow-lg">
                     <p className="text-sm text-muted-foreground mb-2">Palabra Secreta:</p>
-                    <p className="text-3xl font-bold text-foreground tracking-wider">
-                      {gameState.secretWord.toUpperCase()}
-                    </p>
+                    <p className="text-3xl font-bold text-foreground tracking-wider">{gameState.secretWord.toUpperCase()}</p>
                   </div>
                 )}
 
@@ -102,7 +96,7 @@ const RoleScreen = () => {
             disabled={starting}
             className="w-full py-5 bg-success hover:bg-success/90 disabled:bg-input disabled:text-muted-foreground rounded-md font-bold text-lg transition-all duration-150 flex items-center justify-center gap-3 disabled:cursor-not-allowed text-white shadow-md hover:shadow-lg active:scale-[0.98] disabled:shadow-none"
           >
-            <span>{starting ? 'Iniciando...' : 'INICIAR FASE DE PISTAS'}</span>
+            <span>{starting ? "Iniciando..." : "INICIAR FASE DE PISTAS"}</span>
             <ArrowRight className="w-6 h-6" />
           </button>
         </div>

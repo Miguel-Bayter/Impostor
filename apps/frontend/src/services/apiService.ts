@@ -3,8 +3,8 @@
  * Provides type-safe HTTP methods for backend communication
  */
 
-import api from './api';
-import type { User, Room } from '@/types/game';
+import api from "./api";
+import type { User, Room } from "@/types/game";
 
 // Request/Response Types
 export interface CreateRoomParams {
@@ -48,7 +48,7 @@ class ApiService {
    * List all public rooms
    */
   async listRooms(): Promise<Room[]> {
-    const response = await api.get<ListRoomsResponse>('/api/rooms');
+    const response = await api.get<ListRoomsResponse>("/api/rooms");
     return response.data.rooms || [];
   }
 
@@ -56,7 +56,7 @@ class ApiService {
    * Create a new room
    */
   async createRoom(params: CreateRoomParams): Promise<Room> {
-    const response = await api.post<CreateRoomResponse>('/api/rooms/create', params);
+    const response = await api.post<CreateRoomResponse>("/api/rooms/create", params);
     return response.data.room;
   }
 
@@ -64,7 +64,7 @@ class ApiService {
    * Join a room by ID
    */
   async joinRoom(roomId: string): Promise<Room> {
-    const response = await api.post<JoinRoomResponse>('/api/rooms/join', { roomId });
+    const response = await api.post<JoinRoomResponse>("/api/rooms/join", { roomId });
     return response.data.room;
   }
 
@@ -72,7 +72,7 @@ class ApiService {
    * Get current user information
    */
   async getMe(): Promise<User> {
-    const response = await api.get<GetUserResponse>('/api/auth/me');
+    const response = await api.get<GetUserResponse>("/api/auth/me");
     return response.data.user;
   }
 
@@ -80,7 +80,7 @@ class ApiService {
    * Verify if a token is valid
    */
   async verifyToken(token: string): Promise<VerifyTokenResponse> {
-    const response = await api.post<VerifyTokenResponse>('/api/auth/verify', { token });
+    const response = await api.post<VerifyTokenResponse>("/api/auth/verify", { token });
     return response.data;
   }
 }

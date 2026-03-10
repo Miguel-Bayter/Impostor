@@ -1,19 +1,19 @@
-import { useEffect } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
-import AuthScreen from '@/components/auth/AuthScreen';
-import RoomDiscovery from '@/components/rooms/RoomDiscovery';
-import Lobby from '@/components/game/Lobby';
-import RoleScreen from '@/components/game/RoleScreen';
-import CluePhase from '@/components/game/CluePhase';
-import VotingPhase from '@/components/game/VotingPhase';
-import ResultsScreen from '@/components/game/ResultsScreen';
-import { useGame } from '@/hooks/useGame';
-import { useSocket } from '@/hooks/useSocket';
-import { socketService } from '@/services/socket';
-import { Logger, toError } from '@/services/Logger';
-import { StorageService, StorageKey } from '@/services/StorageService';
+import { useEffect } from "react";
+import MainLayout from "@/components/layout/MainLayout";
+import AuthScreen from "@/components/auth/AuthScreen";
+import RoomDiscovery from "@/components/rooms/RoomDiscovery";
+import Lobby from "@/components/game/Lobby";
+import RoleScreen from "@/components/game/RoleScreen";
+import CluePhase from "@/components/game/CluePhase";
+import VotingPhase from "@/components/game/VotingPhase";
+import ResultsScreen from "@/components/game/ResultsScreen";
+import { useGame } from "@/hooks/useGame";
+import { useSocket } from "@/hooks/useSocket";
+import { socketService } from "@/services/socket";
+import { Logger, toError } from "@/services/Logger";
+import { StorageService, StorageKey } from "@/services/StorageService";
 
-const logger = new Logger('App');
+const logger = new Logger("App");
 
 const App = () => {
   // Sincronizar sockets con el estado global
@@ -30,20 +30,20 @@ const App = () => {
       const storedToken = StorageService.get<string>(StorageKey.AUTH_TOKEN);
       if (!storedToken) return;
 
-      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: "SET_LOADING", payload: true });
 
       try {
         const socketClient = socketService.getInstance();
         const result = await socketClient.reconnectWithStoredToken();
 
         if (result.success && result.user) {
-          dispatch({ type: 'SET_USER', payload: result.user });
+          dispatch({ type: "SET_USER", payload: result.user });
           if (result.room) {
-            dispatch({ type: 'SET_ROOM', payload: result.room });
+            dispatch({ type: "SET_ROOM", payload: result.room });
           }
           if (result.gameState) {
-            dispatch({ type: 'SET_GAME_STATE', payload: result.gameState });
-            dispatch({ type: 'SET_PHASE', payload: result.gameState.phase });
+            dispatch({ type: "SET_GAME_STATE", payload: result.gameState });
+            dispatch({ type: "SET_PHASE", payload: result.gameState.phase });
           } else {
             // Si no hay room en la respuesta pero hay roomId en localStorage,
             // intentar unirse manualmente (puede que el servidor no haya reconectado automáticamente)
@@ -56,9 +56,9 @@ const App = () => {
           }
         }
       } catch (error) {
-        logger.error('Error en reconexión automática:', toError(error));
+        logger.error("Error en reconexión automática:", toError(error));
       } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
@@ -82,16 +82,16 @@ const App = () => {
 
     // Si hay sala, renderizar según la fase
     switch (phase) {
-      case 'waiting':
+      case "waiting":
         return <Lobby />;
-      case 'roles':
+      case "roles":
         return <RoleScreen />;
-      case 'clues':
+      case "clues":
         return <CluePhase />;
-      case 'voting':
+      case "voting":
         return <VotingPhase />;
-      case 'results':
-      case 'victory':
+      case "results":
+      case "victory":
         return <ResultsScreen />;
       default:
         return <Lobby />;

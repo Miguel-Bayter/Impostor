@@ -52,6 +52,7 @@ export default tseslint.config(
   },
   {
     files: ['apps/frontend/**/*.{ts,tsx}'],
+    ignores: ['apps/frontend/vite.config.ts', 'apps/frontend/vitest.config.ts'],
     extends: [
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
@@ -85,5 +86,5 @@ export default tseslint.config(
       'no-var': 'error',
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
-  }
+  },
 );

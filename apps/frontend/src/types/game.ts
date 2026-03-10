@@ -1,12 +1,4 @@
-import type {
-  SharedClue,
-  SharedGamePhase,
-  SharedGameState,
-  SharedRoom,
-  SharedRoomPlayer,
-  SharedUserPayload,
-  SharedWinner,
-} from '@impostor/types';
+import type { SharedClue, SharedGamePhase, SharedGameState, SharedRoom, SharedRoomPlayer, SharedUserPayload, SharedWinner } from "@impostor/types";
 
 export type Phase = SharedGamePhase;
 
@@ -23,16 +15,16 @@ export interface Vote {
   votedId: string;
 }
 
-export type Room = Omit<SharedRoom, 'players'> & {
+export type Room = Omit<SharedRoom, "players"> & {
   players: Player[];
 };
 
-export type GameState = Omit<SharedGameState, 'players'> & {
+export type GameState = Omit<SharedGameState, "players"> & {
   players?: Player[];
   winner?: SharedWinner;
 };
 
 export interface GameAction {
-  type: 'SET_USER' | 'SET_ROOM' | 'UPDATE_PLAYERS' | 'SET_GAME_STATE' | 'SET_PHASE' | 'ADD_CLUE' | 'RESET_GAME';
+  type: "SET_USER" | "SET_ROOM" | "UPDATE_PLAYERS" | "SET_GAME_STATE" | "SET_PHASE" | "ADD_CLUE" | "RESET_GAME";
   payload: unknown;
 }

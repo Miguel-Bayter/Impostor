@@ -1,10 +1,10 @@
 export enum GamePhase {
-  ROLES = 'roles',
-  CLUES = 'clues',
-  VOTING = 'voting',
-  RESULTS = 'results',
-  VICTORY = 'victory',
-  TIE_BREAKER = 'tie-breaker',
+  ROLES = "roles",
+  CLUES = "clues",
+  VOTING = "voting",
+  RESULTS = "results",
+  VICTORY = "victory",
+  TIE_BREAKER = "tie-breaker",
 }
 
 export interface GamePlayer {
@@ -33,6 +33,6 @@ export interface GameState {
   clues: GameClue[];
   votes: GameVotes;
   phase: GamePhase;
-  winner: 'citizens' | 'impostor' | null;
+  winner: "citizens" | "impostor" | null;
   rolesConfirmed: Set<string>;
 }

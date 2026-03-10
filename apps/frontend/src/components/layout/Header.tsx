@@ -1,7 +1,7 @@
-import { useGame } from '@/hooks/useGame';
-import { LogOut, User as UserIcon, Wifi, WifiOff } from 'lucide-react';
-import { toast } from 'sonner';
-import { socketService } from '@/services/socket';
+import { useGame } from "@/hooks/useGame";
+import { LogOut, User as UserIcon, Wifi, WifiOff } from "lucide-react";
+import { toast } from "sonner";
+import { socketService } from "@/services/socket";
 
 const Header = () => {
   const { state, dispatch } = useGame();
@@ -9,17 +9,17 @@ const Header = () => {
   const isConnected = false; // TODO: Conectar con el estado de SocketService
 
   const handleLogout = () => {
-    if (confirm('¿Cerrar sesión?')) {
+    if (confirm("¿Cerrar sesión?")) {
       const socketClient = socketService.getInstance();
       socketClient.logout();
 
       // Resetear estado global
-      dispatch({ type: 'SET_USER', payload: null });
-      dispatch({ type: 'SET_TOKEN', payload: null });
-      dispatch({ type: 'SET_ROOM', payload: null });
-      dispatch({ type: 'RESET_GAME' });
+      dispatch({ type: "SET_USER", payload: null });
+      dispatch({ type: "SET_TOKEN", payload: null });
+      dispatch({ type: "SET_ROOM", payload: null });
+      dispatch({ type: "RESET_GAME" });
 
-      toast.info('Sesión cerrada');
+      toast.info("Sesión cerrada");
     }
   };
 
@@ -41,14 +41,8 @@ const Header = () => {
 
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2 px-3 py-1.5 bg-bg-input rounded-full border border-border">
-          {isConnected ? (
-            <Wifi className="w-3.5 h-3.5 text-success" />
-          ) : (
-            <WifiOff className="w-3.5 h-3.5 text-danger" />
-          )}
-          <span className="text-xs font-medium uppercase tracking-wider">
-            {isConnected ? 'En Línea' : 'Desconectado'}
-          </span>
+          {isConnected ? <Wifi className="w-3.5 h-3.5 text-success" /> : <WifiOff className="w-3.5 h-3.5 text-danger" />}
+          <span className="text-xs font-medium uppercase tracking-wider">{isConnected ? "En Línea" : "Desconectado"}</span>
         </div>
 
         {user && (

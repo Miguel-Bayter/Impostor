@@ -30,6 +30,7 @@ pnpm --filter ./apps/backend dev
 ```
 
 Local server:
+
 - http://localhost:3001
 
 ## Environment Variables (minimum)
@@ -65,6 +66,7 @@ ALLOWED_ORIGINS=https://<your-frontend>.pages.dev
 ```
 
 Notes:
+
 - Use MongoDB Atlas or a managed MongoDB.
 - Use managed Redis (Redis Cloud or similar).
 - Configure CORS for the real frontend domain.

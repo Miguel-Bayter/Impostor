@@ -1,7 +1,7 @@
-import { useGame } from '@/hooks/useGame';
-import { Users, Crown, LogOut, Play, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
-import { socketService } from '@/services/socket';
+import { useGame } from "@/hooks/useGame";
+import { Users, Crown, LogOut, Play, Copy, Check } from "lucide-react";
+import { useState } from "react";
+import { socketService } from "@/services/socket";
 
 const Lobby = () => {
   const { state, dispatch } = useGame();
@@ -22,16 +22,16 @@ const Lobby = () => {
   };
 
   const handleLeaveRoom = () => {
-    if (confirm('¿Salir de la sala?')) {
+    if (confirm("¿Salir de la sala?")) {
       const socket = socketService.getInstance();
-      socket.emit('room:leave', { roomId: room.id });
-      dispatch({ type: 'SET_ROOM', payload: null });
+      socket.emit("room:leave", { roomId: room.id });
+      dispatch({ type: "SET_ROOM", payload: null });
     }
   };
 
   const handleStartGame = () => {
     const socket = socketService.getInstance();
-    socket.emit('game:start', { roomId: room.id });
+    socket.emit("game:start", { roomId: room.id });
   };
 
   return (
@@ -88,9 +88,7 @@ const Lobby = () => {
             <div
               key={player.userId}
               className={`p-4 rounded-lg border transition-all duration-150 ${
-                player.userId === user.userId
-                  ? 'bg-primary/10 border-primary/40 shadow-sm'
-                  : 'bg-hover/20 border-border hover:bg-hover/30'
+                player.userId === user.userId ? "bg-primary/10 border-primary/40 shadow-sm" : "bg-hover/20 border-border hover:bg-hover/30"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -98,8 +96,8 @@ const Lobby = () => {
                   <div
                     className={`size-12 rounded-full flex items-center justify-center font-bold border-2 text-xl ${
                       player.userId === room.hostId
-                        ? 'bg-linear-to-br from-warning to-warning/80 text-white border-warning/30'
-                        : 'bg-linear-to-br from-primary to-primary-light text-primary-foreground border-border'
+                        ? "bg-linear-to-br from-warning to-warning/80 text-white border-warning/30"
+                        : "bg-linear-to-br from-primary to-primary-light text-primary-foreground border-border"
                     }`}
                   >
                     {player.username.charAt(0).toUpperCase()}
@@ -116,9 +114,7 @@ const Lobby = () => {
                 </div>
 
                 {player.isReady && player.userId !== room.hostId && (
-                  <div className="px-3 py-1.5 bg-success/20 text-success border border-success/30 rounded-sm text-xs font-medium">
-                    Listo ✓
-                  </div>
+                  <div className="px-3 py-1.5 bg-success/20 text-success border border-success/30 rounded-sm text-xs font-medium">Listo ✓</div>
                 )}
               </div>
             </div>
@@ -135,7 +131,7 @@ const Lobby = () => {
             className="w-full py-5 bg-success hover:bg-success/90 disabled:bg-input disabled:text-muted-foreground rounded-md font-bold text-lg flex items-center justify-center gap-3 transition-all duration-150 disabled:cursor-not-allowed text-white shadow-md hover:shadow-lg active:scale-[0.98] disabled:shadow-none"
           >
             <Play className="w-6 h-6" />
-            <span>{canStart ? 'INICIAR PARTIDA' : 'ESPERANDO JUGADORES...'}</span>
+            <span>{canStart ? "INICIAR PARTIDA" : "ESPERANDO JUGADORES..."}</span>
           </button>
         </div>
       )}

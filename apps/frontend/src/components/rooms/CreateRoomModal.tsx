@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useGame } from '@/hooks/useGame';
-import { X, Users, Shield } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useGame } from "@/hooks/useGame";
+import { X, Users, Shield } from "lucide-react";
+import { toast } from "sonner";
 
-import { apiService } from '@/services/apiService';
-import { socketService } from '@/services/socket';
+import { apiService } from "@/services/apiService";
+import { socketService } from "@/services/socket";
 
 interface CreateRoomModalProps {
   onClose: () => void;
@@ -12,7 +12,7 @@ interface CreateRoomModalProps {
 
 const CreateRoomModal = ({ onClose }: CreateRoomModalProps) => {
   const { state, dispatch } = useGame();
-  const [roomName, setRoomName] = useState(`Sala de ${state.user?.username || 'Jugador'}`);
+  const [roomName, setRoomName] = useState(`Sala de ${state.user?.username || "Jugador"}`);
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [minPlayers, setMinPlayers] = useState(3);
   const [numImpostors, setNumImpostors] = useState(1);
@@ -38,12 +38,12 @@ const CreateRoomModal = ({ onClose }: CreateRoomModalProps) => {
       const socketClient = socketService.getInstance();
       socketClient.joinRoom(room.id);
 
-      dispatch({ type: 'SET_ROOM', payload: room });
-      toast.success('Sala creada exitosamente');
+      dispatch({ type: "SET_ROOM", payload: room });
+      toast.success("Sala creada exitosamente");
       onClose();
     } catch (err: unknown) {
       const error = err as Error;
-      const errorMessage = error.message || 'Error al crear la sala';
+      const errorMessage = error.message || "Error al crear la sala";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -61,17 +61,11 @@ const CreateRoomModal = ({ onClose }: CreateRoomModalProps) => {
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="mb-4 p-3 bg-destructive/20 border border-destructive/30 rounded-md text-destructive text-sm">{error}</div>}
 
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pl-1">
-              Nombre de la Sala
-            </label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pl-1">Nombre de la Sala</label>
             <input
               type="text"
               value={roomName}
@@ -155,7 +149,7 @@ const CreateRoomModal = ({ onClose }: CreateRoomModalProps) => {
               disabled={loading}
               className="flex-1 py-3 bg-primary hover:bg-primary-hover text-primary-foreground rounded-md font-medium shadow-sm hover:shadow-md transition-all duration-150 disabled:opacity-50 active:scale-[0.98]"
             >
-              {loading ? 'Creando...' : 'Crear Sala'}
+              {loading ? "Creando..." : "Crear Sala"}
             </button>
           </div>
         </form>

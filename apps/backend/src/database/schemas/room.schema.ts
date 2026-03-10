@@ -1,7 +1,7 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
-import { RoomStatus, RoomPlayer, type RoomSettings } from '../../types/room.types';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { HydratedDocument } from "mongoose";
+import { v4 as uuidv4 } from "uuid";
+import { RoomStatus, RoomPlayer, type RoomSettings } from "../../types/room.types";
 
 export type RoomDocument = HydratedDocument<Room>;
 
@@ -51,4 +51,4 @@ export const RoomSchema = SchemaFactory.createForClass(Room);
 RoomSchema.index({ hostId: 1 });
 RoomSchema.index({ status: 1 });
 RoomSchema.index({ name: 1 });
-RoomSchema.index({ 'players.userId': 1 });
+RoomSchema.index({ "players.userId": 1 });

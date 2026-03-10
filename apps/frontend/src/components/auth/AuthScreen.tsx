@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import LoginForm from '@/components/auth/LoginForm';
-import RegisterForm from '@/components/auth/RegisterForm';
+import { useState } from "react";
+import LoginForm from "@/components/auth/LoginForm";
+import RegisterForm from "@/components/auth/RegisterForm";
 
 const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,9 +15,9 @@ const AuthScreen = () => {
 
         {/* Title Section */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2 text-foreground">{isLogin ? 'Impostor' : 'Únete al Juego'}</h1>
+          <h1 className="text-3xl font-bold mb-2 text-foreground">{isLogin ? "Impostor" : "Únete al Juego"}</h1>
           <p className="text-muted-foreground text-sm">
-            {isLogin ? 'Inicia sesión para descubrir quién es el impostor' : 'Crea tu cuenta y empieza a jugar'}
+            {isLogin ? "Inicia sesión para descubrir quién es el impostor" : "Crea tu cuenta y empieza a jugar"}
           </p>
         </div>
 
@@ -38,7 +38,7 @@ const AuthScreen = () => {
             onClick={() => setIsLogin(!isLogin)}
             className="text-primary hover:text-primary-light transition-colors duration-150 text-sm font-medium"
           >
-            {isLogin ? '¿No tienes cuenta? Regístrate →' : '¿Ya tienes cuenta? Inicia sesión →'}
+            {isLogin ? "¿No tienes cuenta? Regístrate →" : "¿Ya tienes cuenta? Inicia sesión →"}
           </button>
         </div>
       </div>

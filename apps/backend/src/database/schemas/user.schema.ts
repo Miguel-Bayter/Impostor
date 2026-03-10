@@ -1,7 +1,7 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, CallbackWithoutResultAndOptionalError } from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
-import * as bcrypt from 'bcrypt';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { HydratedDocument, CallbackWithoutResultAndOptionalError } from "mongoose";
+import { v4 as uuidv4 } from "uuid";
+import * as bcrypt from "bcrypt";
 
 // Extend UserDocument with comparePassword method
 export interface UserDocument extends HydratedDocument<User> {
@@ -47,16 +47,13 @@ UserSchema.index({ socketId: 1 }, { sparse: true });
 UserSchema.index({ currentRoomId: 1 }, { sparse: true });
 
 // Instance method for password comparison
-UserSchema.methods.comparePassword = async function (
-  this: UserDocument,
-  candidatePassword: string,
-): Promise<boolean> {
+UserSchema.methods.comparePassword = async function (this: UserDocument, candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
 // Hash password before save
-UserSchema.pre('save', async function (next: CallbackWithoutResultAndOptionalError) {
-  if (!this.isModified('password')) return next();
+UserSchema.pre("save", async function (next: CallbackWithoutResultAndOptionalError) {
+  if (!this.isModified("password")) return next();
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

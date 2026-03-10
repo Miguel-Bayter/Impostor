@@ -1,6 +1,6 @@
-import { useGame } from '@/hooks/useGame';
-import { Trophy, XCircle, RotateCcw } from 'lucide-react';
-import { socketService } from '@/services/socket';
+import { useGame } from "@/hooks/useGame";
+import { Trophy, XCircle, RotateCcw } from "lucide-react";
+import { socketService } from "@/services/socket";
 
 const ResultsScreen = () => {
   const { state } = useGame();
@@ -9,11 +9,11 @@ const ResultsScreen = () => {
   if (!gameState || !room) return null;
 
   const winner = gameState.winner;
-  const citizensWon = winner === 'citizens';
+  const citizensWon = winner === "citizens";
 
   const handleNewGame = () => {
     const socket = socketService.getInstance().getSocket();
-    socket.emit('game:startNewRound', { roomId: room.id });
+    socket.emit("game:startNewRound", { roomId: room.id });
   };
 
   return (
@@ -21,19 +21,15 @@ const ResultsScreen = () => {
       <div className="text-center space-y-6">
         <div
           className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center border-4 shadow-xl ${
-            citizensWon ? 'bg-success/20 border-success' : 'bg-danger/20 border-danger'
+            citizensWon ? "bg-success/20 border-success" : "bg-danger/20 border-danger"
           }`}
         >
           {citizensWon ? <Trophy className="w-16 h-16 text-success" /> : <XCircle className="w-16 h-16 text-danger" />}
         </div>
 
         <div>
-          <h2 className="text-4xl font-bold mb-2 text-foreground">
-            {citizensWon ? '¡Victoria de los Ciudadanos!' : '¡Victoria de los Impostores!'}
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            {citizensWon ? 'El impostor fue descubierto' : 'El impostor logró engañar a todos'}
-          </p>
+          <h2 className="text-4xl font-bold mb-2 text-foreground">{citizensWon ? "¡Victoria de los Ciudadanos!" : "¡Victoria de los Impostores!"}</h2>
+          <p className="text-muted-foreground text-lg">{citizensWon ? "El impostor fue descubierto" : "El impostor logró engañar a todos"}</p>
         </div>
       </div>
 
@@ -49,9 +45,7 @@ const ResultsScreen = () => {
                 .toUpperCase()}
             </div>
             <div>
-              <p className="text-2xl font-bold text-foreground">
-                {room.players.find((p) => p.userId === gameState.impostorId)?.username}
-              </p>
+              <p className="text-2xl font-bold text-foreground">{room.players.find((p) => p.userId === gameState.impostorId)?.username}</p>
               <p className="text-destructive text-sm font-semibold">Impostor</p>
             </div>
           </div>
@@ -77,17 +71,14 @@ const ResultsScreen = () => {
                   acc[targetId] = (acc[targetId] || 0) + 1;
                   return acc;
                 },
-                {} as Record<string, number>
-              )
+                {} as Record<string, number>,
+              ),
             )
               .sort(([, a], [, b]) => b - a)
               .map(([playerId, count]) => {
                 const player = room.players.find((p) => p.userId === playerId);
                 return (
-                  <div
-                    key={playerId}
-                    className="flex items-center justify-between p-3 bg-hover/30 rounded-lg border border-border"
-                  >
+                  <div key={playerId} className="flex items-center justify-between p-3 bg-hover/30 rounded-lg border border-border">
                     <span className="font-semibold text-foreground">{player?.username}</span>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
@@ -96,7 +87,7 @@ const ResultsScreen = () => {
                         ))}
                       </div>
                       <span className="text-muted-foreground text-sm">
-                        {count} {count === 1 ? 'voto' : 'votos'}
+                        {count} {count === 1 ? "voto" : "votos"}
                       </span>
                     </div>
                   </div>

@@ -1,8 +1,8 @@
 export enum RoomStatus {
-  WAITING = 'waiting',
-  STARTING = 'starting',
-  IN_PROGRESS = 'in_progress',
-  FINISHED = 'finished',
+  WAITING = "waiting",
+  STARTING = "starting",
+  IN_PROGRESS = "in_progress",
+  FINISHED = "finished",
 }
 
 export interface RoomPlayer {
@@ -32,6 +32,6 @@ export interface Room {
 }
 
 // Database document interface (with _id instead of id)
-export interface RoomDocument extends Omit<Room, 'id'> {
+export interface RoomDocument extends Omit<Room, "id"> {
   _id: string;
 }
